@@ -1,0 +1,2339 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VGA Shape Designer</title>
+<style>
+  :root {
+    --bg: #eef0f4; --panel: #ffffff; --panel-2: #f6f7f9; --border: #dfe3ea; --border-strong: #c7cdd7;
+    --text: #161a20; --muted: #5d6776; --faint: #8a93a1;
+    --accent: #2563eb; --accent-soft: rgba(37, 99, 235, .10); --accent-text: #ffffff;
+    --danger: #d33a3a; --ok: #1f9d55;
+    --shadow: 0 1px 2px rgba(16, 24, 40, .05), 0 2px 10px rgba(16, 24, 40, .04);
+    --canvas-bg: #e3e6eb; --ruler: #f6f7f9; --ruler-text: #6b7482; --ruler-tick: #b9c0cb;
+    --code-bg: #f7f8fa; --tk-kw: #a626a4; --tk-num: #b45309; --tk-port: #2563eb; --tk-com: #6b7280; --tk-id: #111827;
+    --hl: rgba(37, 99, 235, .09); --hl-bar: #2563eb;
+    --r-red: #e5484d; --r-green: #30a46c; --r-blue: #3e63dd;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0d1015; --panel: #151a21; --panel-2: #1b212a; --border: #262d38; --border-strong: #363e4b;
+      --text: #e7ebf0; --muted: #9aa4b2; --faint: #6b7583;
+      --accent: #6b9dff; --accent-soft: rgba(107, 157, 255, .14); --accent-text: #0b1020;
+      --danger: #ff6b6b; --ok: #3ccf7f;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 4px 16px rgba(0, 0, 0, .2);
+      --canvas-bg: #0a0d11; --ruler: #12161c; --ruler-text: #7d8795; --ruler-tick: #3a424f;
+      --code-bg: #10141a; --tk-kw: #d19bf0; --tk-num: #f0b46b; --tk-port: #79a8ff; --tk-com: #6f7a89; --tk-id: #e7ebf0;
+      --hl: rgba(107, 157, 255, .12); --hl-bar: #6b9dff;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0d1015; --panel: #151a21; --panel-2: #1b212a; --border: #262d38; --border-strong: #363e4b;
+    --text: #e7ebf0; --muted: #9aa4b2; --faint: #6b7583;
+    --accent: #6b9dff; --accent-soft: rgba(107, 157, 255, .14); --accent-text: #0b1020;
+    --danger: #ff6b6b; --ok: #3ccf7f;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 4px 16px rgba(0, 0, 0, .2);
+    --canvas-bg: #0a0d11; --ruler: #12161c; --ruler-text: #7d8795; --ruler-tick: #3a424f;
+    --code-bg: #10141a; --tk-kw: #d19bf0; --tk-num: #f0b46b; --tk-port: #79a8ff; --tk-com: #6f7a89; --tk-id: #e7ebf0;
+    --hl: rgba(107, 157, 255, .12); --hl-bar: #6b9dff;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .mono, code, pre, input.mono { font-family: ui-monospace, "Cascadia Code", "JetBrains Mono", Consolas, "SF Mono", Menlo, monospace; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+
+  /* ---------- header ---------- */
+  .top {
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    padding: 12px 20px; background: var(--panel); border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 20;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; margin-right: auto; min-width: 0; }
+  .logo {
+    width: 34px; height: 26px; border-radius: 5px; background: #05070a; position: relative; flex: none;
+    box-shadow: inset 0 0 0 2px #2b313b;
+  }
+  .logo::before { content: ""; position: absolute; left: 6px; top: 6px; width: 12px; height: 9px; background: #3e63dd; }
+  .logo::after { content: ""; position: absolute; left: 15px; top: 10px; width: 10px; height: 10px; border-radius: 50%; background: #ff6fae; }
+  .brand h1 { font-size: 16px; margin: 0; letter-spacing: -.01em; }
+  .brand p { margin: 0; font-size: 12px; color: var(--muted); }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px;
+    border: 1px solid var(--border-strong); background: var(--panel); border-radius: 8px; cursor: pointer;
+    white-space: nowrap; transition: background .12s, border-color .12s;
+  }
+  .btn:hover:not(:disabled) { background: var(--panel-2); }
+  .btn:disabled { opacity: .45; cursor: default; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); font-weight: 600; }
+  .btn.primary:hover { filter: brightness(1.06); background: var(--accent); }
+  .btn.danger:hover:not(:disabled) { color: var(--danger); border-color: var(--danger); }
+  .btn.sm { height: 28px; padding: 0 9px; font-size: 13px; border-radius: 7px; }
+  .btn.icon { width: 32px; padding: 0; justify-content: center; }
+  .btn svg { width: 16px; height: 16px; flex: none; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ---------- layout ---------- */
+  .layout {
+    display: grid; grid-template-columns: minmax(0, 1fr) 352px; gap: 16px;
+    padding: 16px 20px 32px; max-width: 1680px; margin: 0 auto; align-items: start;
+  }
+  .col-main, .col-side { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); min-width: 0; }
+  .card-head { display: flex; align-items: center; gap: 10px; padding: 12px 14px 0; flex-wrap: wrap; }
+  .card-head h2 { margin: 0; font-size: 12px; font-weight: 650; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .card-head .grow { flex: 1; }
+  .card-body { padding: 12px 14px 14px; }
+
+  /* ---------- canvas card ---------- */
+  .toolbar { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .seg { display: inline-flex; background: var(--panel-2); border: 1px solid var(--border); border-radius: 9px; padding: 3px; gap: 2px; }
+  .seg button {
+    display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 11px; border: 0; border-radius: 7px;
+    background: transparent; cursor: pointer; color: var(--muted); font-weight: 550;
+  }
+  .seg button:hover { color: var(--text); }
+  .seg button[aria-pressed="true"] { background: var(--panel); color: var(--text); box-shadow: 0 0 0 1px var(--border-strong), 0 1px 2px rgba(0,0,0,.08); }
+  .seg button svg { width: 16px; height: 16px; }
+  kbd {
+    font: 11px/1 ui-monospace, Consolas, monospace; padding: 2px 5px; border-radius: 4px;
+    border: 1px solid var(--border-strong); color: var(--faint); background: var(--panel);
+  }
+  .toolbar .spacer { flex: 1; }
+  .chk { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; color: var(--muted); user-select: none; }
+  .chk input { accent-color: var(--accent); width: 15px; height: 15px; margin: 0; }
+
+  .zoom { display: inline-flex; align-items: center; gap: 2px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 9px; padding: 3px; }
+  .zoom button {
+    display: inline-grid; place-items: center; height: 26px; min-width: 28px; padding: 0 6px; border: 0; border-radius: 7px;
+    background: transparent; cursor: pointer; color: var(--muted);
+  }
+  .zoom button:hover { color: var(--text); background: var(--panel); }
+  .zoom button svg { width: 14px; height: 14px; }
+  .zoom .zl { min-width: 56px; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+  .zoom .zl[aria-pressed="true"] { color: var(--accent); }
+
+  .canvas-wrap { position: relative; height: 420px; background: var(--canvas-bg); overflow: hidden; }
+  #screen { position: absolute; left: 0; top: 0; display: block; touch-action: none; }
+  .status {
+    display: flex; gap: 16px; justify-content: space-between; flex-wrap: wrap;
+    padding: 8px 14px; border-top: 1px solid var(--border); font-size: 12.5px; color: var(--muted); min-height: 36px; align-items: center;
+  }
+  .status .mono { color: var(--text); }
+  .status .sw-inline { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: -1px; box-shadow: 0 0 0 1px var(--border-strong); margin-right: 4px; }
+
+  /* ---------- code card ---------- */
+  .code-opts { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; font-size: 13px; }
+  .seg.small { padding: 2px; }
+  .seg.small button { height: 26px; padding: 0 10px; font-size: 12.5px; }
+  .steps { margin: 10px 14px 0; font-size: 12.5px; color: var(--muted); }
+  .steps summary { cursor: pointer; color: var(--text); font-weight: 600; width: fit-content; }
+  .steps ol { margin: 6px 0 0; padding-left: 20px; }
+  .steps li { margin: 2px 0; }
+  .steps code { color: var(--text); font-size: 12px; }
+  pre#code {
+    position: relative;
+    margin: 12px 0 0; padding: 12px 0; background: var(--code-bg); border-top: 1px solid var(--border);
+    border-radius: 0 0 12px 12px; overflow: auto; max-height: 560px; font-size: 12.8px; line-height: 1.55; tab-size: 4;
+  }
+  pre#code .ln { display: block; padding: 0 16px; white-space: pre; border-left: 3px solid transparent; }
+  pre#code .blk { display: block; cursor: pointer; }
+  pre#code .blk:hover .ln { background: var(--hl); }
+  pre#code .blk.sel .ln { background: var(--hl); border-left-color: var(--hl-bar); }
+  .tk-kw { color: var(--tk-kw); } .tk-num { color: var(--tk-num); } .tk-port { color: var(--tk-port); }
+  .tk-com { color: var(--tk-com); font-style: italic; } .tk-id { color: var(--tk-id); }
+
+  /* ---------- colour card ---------- */
+  .targets { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .target {
+    display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 9px; cursor: pointer; text-align: left;
+    border: 1px solid var(--border); background: var(--panel-2);
+  }
+  .target[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); background: var(--accent-soft); }
+  .target b { display: block; font-size: 13px; font-weight: 600; }
+  .target small { display: block; font-size: 11.5px; color: var(--muted); }
+  .sw { width: 26px; height: 26px; border-radius: 6px; flex: none; box-shadow: inset 0 0 0 1px rgba(127,127,127,.35); }
+
+  .picker { display: grid; grid-template-columns: 164px 1fr; gap: 12px; margin-top: 12px; align-items: center; }
+  #wheel { width: 164px; height: 164px; display: block; touch-action: none; cursor: crosshair; }
+  .picker-side { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .big-sw { height: 46px; border-radius: 8px; box-shadow: inset 0 0 0 1px rgba(127,127,127,.35); }
+  .field { display: flex; flex-direction: column; gap: 3px; font-size: 11.5px; color: var(--muted); }
+  .field .inp { display: flex; align-items: center; border: 1px solid var(--border-strong); border-radius: 7px; background: var(--panel); overflow: hidden; }
+  .field .inp:focus-within { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .field .inp span { padding: 0 0 0 8px; color: var(--faint); font-size: 12.5px; }
+  .field input { border: 0; background: transparent; padding: 5px 8px 5px 2px; width: 100%; min-width: 0; outline: none; font-size: 13px; text-transform: uppercase; }
+  .field input.bad { color: var(--danger); }
+
+  .slider-row { display: grid; grid-template-columns: 22px 1fr 56px 44px; gap: 8px; align-items: center; margin-top: 8px; }
+  .slider-row.val { grid-template-columns: 74px 1fr 44px; margin-top: 12px; }
+  .slider-row label { font-size: 12.5px; color: var(--muted); font-weight: 600; }
+  .slider-row .q { font-size: 11.5px; color: var(--faint); text-align: right; white-space: nowrap; }
+  input[type="number"].num {
+    width: 100%; padding: 4px 6px; border: 1px solid var(--border-strong); border-radius: 6px; background: var(--panel);
+    font-size: 13px; font-variant-numeric: tabular-nums;
+  }
+  input[type="number"].num:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  input[type="number"].num.bad { border-color: var(--danger); color: var(--danger); }
+
+  input[type="range"].grad { -webkit-appearance: none; appearance: none; height: 14px; border-radius: 7px; margin: 0; width: 100%; background: #888; box-shadow: inset 0 0 0 1px rgba(127,127,127,.35); cursor: pointer; }
+  input[type="range"].grad::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #fff; border: 2px solid #1d2229; box-shadow: 0 1px 3px rgba(0,0,0,.4); }
+  input[type="range"].grad::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: #fff; border: 2px solid #1d2229; box-shadow: 0 1px 3px rgba(0,0,0,.4); }
+  input[type="range"].grad::-moz-range-track { background: transparent; }
+
+  .bits-wrap { margin-top: 12px; }
+  .bits-head { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--muted); margin-bottom: 4px; }
+  .bits { display: grid; grid-template-columns: repeat(12, 1fr); gap: 2px; }
+  .bit {
+    height: 24px; border-radius: 4px; border: 1px solid var(--border); background: var(--panel-2); cursor: pointer; padding: 0;
+    font: 11px/1 ui-monospace, Consolas, monospace; color: var(--faint);
+  }
+  .bit.r.on { background: var(--r-red); border-color: var(--r-red); color: #fff; }
+  .bit.g.on { background: var(--r-green); border-color: var(--r-green); color: #fff; }
+  .bit.b.on { background: var(--r-blue); border-color: var(--r-blue); color: #fff; }
+  .bit.gap { margin-left: 4px; }
+  .bit-labels { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; font-size: 10.5px; color: var(--faint); margin-top: 3px; text-align: center; }
+
+  .presets { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; margin-top: 12px; }
+  .preset { height: 24px; border-radius: 6px; border: 0; cursor: pointer; box-shadow: inset 0 0 0 1px rgba(127,127,127,.4); padding: 0; }
+  .preset:hover { transform: translateY(-1px); box-shadow: inset 0 0 0 1px rgba(127,127,127,.4), 0 2px 6px rgba(0,0,0,.2); }
+  .note { margin: 10px 0 0; font-size: 11.5px; color: var(--faint); }
+  .note code { color: var(--muted); }
+
+  /* ---------- properties ---------- */
+  .empty { color: var(--muted); font-size: 13px; margin: 0; }
+  .empty ul { margin: 8px 0 0; padding-left: 18px; color: var(--faint); font-size: 12.5px; }
+  .prop-title { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .prop-title .sw { width: 22px; height: 22px; }
+  .prop-title b { font-size: 14px; }
+  .prop-title small { color: var(--muted); font-size: 12px; margin-left: auto; }
+  .prop-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px 10px; }
+  .prop-grid.three { grid-template-columns: repeat(3, 1fr); }
+  .prop { display: flex; flex-direction: column; gap: 3px; }
+  .prop label { font-size: 11.5px; color: var(--muted); }
+  .prop label .w { color: var(--faint); }
+  .prop-info { margin-top: 8px; font-size: 12px; color: var(--faint); }
+  .prop-text { display: flex; flex-direction: column; gap: 3px; margin-bottom: 10px; }
+  .prop-text label { font-size: 11.5px; color: var(--muted); }
+  .prop-text label .w { color: var(--faint); }
+  .prop-text input {
+    width: 100%; padding: 6px 8px; border: 1px solid var(--border-strong); border-radius: 7px; background: var(--panel); font-size: 14px;
+  }
+  .prop-text input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .prop-note { margin-top: 10px; }
+  .prop-note input {
+    width: 100%; padding: 5px 8px; border: 1px solid var(--border-strong); border-radius: 7px; background: var(--panel); font-size: 13px;
+  }
+  .prop-note input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .prop-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+
+  /* ---------- layers ---------- */
+  .layers { position: relative; list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; max-height: 420px; overflow: auto; }
+  .layer {
+    display: grid; grid-template-columns: 18px 20px minmax(0, 1fr) auto; gap: 8px; align-items: center;
+    padding: 6px 6px 6px 8px; border-radius: 8px; border: 1px solid transparent; cursor: pointer; background: var(--panel-2);
+  }
+  .layer:hover { border-color: var(--border-strong); }
+  .layer.sel { border-color: var(--accent); background: var(--accent-soft); }
+  .layer.base { cursor: pointer; background: transparent; border: 1px dashed var(--border-strong); }
+  .layer.out { cursor: default; background: transparent; border: 1px dashed var(--border-strong); grid-template-columns: 18px minmax(0, 1fr); }
+  .layer.drop-before { box-shadow: 0 -2px 0 0 var(--accent); }
+  .layer.drop-after { box-shadow: 0 2px 0 0 var(--accent); }
+  .layer .idx { font-size: 11.5px; color: var(--faint); text-align: center; font-variant-numeric: tabular-nums; }
+  .layer .sw { width: 20px; height: 20px; border-radius: 5px; }
+  .layer .nm { min-width: 0; }
+  .layer .nm b { display: block; font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .layer .nm .hex { font-weight: 400; font-size: 11.5px; color: var(--muted); margin-left: 4px; }
+  .layer .nm small { display: block; font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .layer .ops { display: flex; gap: 2px; opacity: .55; }
+  .layer:hover .ops, .layer.sel .ops { opacity: 1; }
+  .layer .ops button { width: 24px; height: 24px; border: 0; border-radius: 6px; background: transparent; cursor: pointer; color: var(--muted); display: grid; place-items: center; padding: 0; }
+  .layer .ops button:hover:not(:disabled) { background: var(--panel); color: var(--text); box-shadow: 0 0 0 1px var(--border-strong); }
+  .layer .ops button.del:hover { color: var(--danger); }
+  .layer .ops button:disabled { opacity: .3; cursor: default; }
+  .layer .ops svg { width: 14px; height: 14px; }
+  .layers-hint { font-size: 11.5px; color: var(--faint); margin: 8px 0 0; }
+  .layers-hint.warn { color: var(--danger); }
+
+  /* ---------- dialog + toast ---------- */
+  dialog {
+    border: 1px solid var(--border); border-radius: 14px; padding: 0; background: var(--panel); color: var(--text);
+    width: min(720px, calc(100vw - 32px)); box-shadow: 0 20px 60px rgba(0,0,0,.35);
+  }
+  dialog::backdrop { background: rgba(8, 10, 14, .55); }
+  .dlg-head { padding: 16px 18px 0; }
+  .dlg-head h3 { margin: 0; font-size: 16px; }
+  .dlg-head p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+  .dlg-body { padding: 12px 18px; }
+  .dlg-body textarea {
+    width: 100%; height: 300px; resize: vertical; padding: 10px 12px; border-radius: 9px; border: 1px solid var(--border-strong);
+    background: var(--code-bg); font-size: 12.5px; line-height: 1.5;
+  }
+  .dlg-body textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .dlg-msg { min-height: 20px; margin-top: 8px; font-size: 13px; color: var(--muted); }
+  .dlg-msg.err { color: var(--danger); }
+  .dlg-foot { display: flex; gap: 8px; padding: 0 18px 16px; justify-content: flex-end; flex-wrap: wrap; }
+  .dlg-foot .left { margin-right: auto; }
+
+  #toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px); opacity: 0; pointer-events: none;
+    background: #1d2229; color: #f2f4f7; padding: 9px 16px; border-radius: 9px; font-size: 13px; box-shadow: 0 8px 24px rgba(0,0,0,.3);
+    transition: opacity .18s, transform .18s; z-index: 50; max-width: calc(100vw - 32px);
+  }
+  #toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  /* ---------- responsive ---------- */
+  @media (max-width: 1080px) {
+    .layout { grid-template-columns: minmax(0, 1fr); }
+    .col-side { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); align-items: start; }
+  }
+  @media (max-width: 640px) {
+    .top { padding: 10px 16px; }
+    .layout { padding: 12px 16px 24px; gap: 12px; }
+    .col-side { grid-template-columns: minmax(0, 1fr); }
+    .seg button .lbl, .seg kbd { display: none; }
+    .actions .btn .lbl { display: none; }
+    .picker { grid-template-columns: 1fr; justify-items: center; }
+    .picker-side { width: 100%; }
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <span class="logo" aria-hidden="true"></span>
+    <div>
+      <h1>VGA Shape Designer</h1>
+      <p>640 × 480 pixels · 12-bit RGB444 · generates <code>rectangle</code> / <code>circle</code> / <code>triangle</code> / <code>character</code> instances for <code>vga_modules.v</code></p>
+    </div>
+  </div>
+  <div class="actions">
+    <button class="btn" id="undoBtn" title="Undo (Ctrl+Z)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 3 2.5 6l3 3"/><path d="M2.5 6h7a4 4 0 0 1 0 8H7"/></svg><span class="lbl">Undo</span>
+    </button>
+    <button class="btn" id="redoBtn" title="Redo (Ctrl+Y)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 3l3 3-3 3"/><path d="M13.5 6h-7a4 4 0 0 0 0 8H9"/></svg><span class="lbl">Redo</span>
+    </button>
+    <button class="btn" id="importBtn" title="Paste existing Verilog to rebuild the drawing">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v8"/><path d="M4.5 6.5 8 10l3.5-3.5"/><path d="M2.5 11.5v2h11v-2"/></svg><span class="lbl">Import Verilog</span>
+    </button>
+    <button class="btn primary" id="copyTopBtn" title="Copy the generated Verilog">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="5" y="5" width="8.5" height="8.5" rx="1.5"/><path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5"/></svg><span class="lbl">Copy Verilog</span>
+    </button>
+    <button class="btn icon" id="themeBtn" title="Toggle light / dark theme" aria-label="Toggle theme">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="5.5"/><path d="M8 2.5v11a5.5 5.5 0 0 0 0-11z" fill="currentColor"/></svg>
+    </button>
+  </div>
+</header>
+
+<main class="layout">
+  <section class="col-main">
+    <div class="card">
+      <div class="toolbar">
+        <div class="seg" role="group" aria-label="Tools">
+          <button data-tool="select" title="Select, move and resize (V)">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M3 2.5l9.5 5-4.2 1.1L6.6 13z"/></svg><span class="lbl">Select</span> <kbd>V</kbd>
+          </button>
+          <button data-tool="rectangle" title="Draw rectangle (R): drag corner to corner, hold Shift for a square">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2.5" y="3.5" width="11" height="9" rx="1"/></svg><span class="lbl">Rectangle</span> <kbd>R</kbd>
+          </button>
+          <button data-tool="circle" title="Draw circle (C): press at the centre, drag out the radius">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="5.5"/></svg><span class="lbl">Circle</span> <kbd>C</kbd>
+          </button>
+          <button data-tool="triangle" title="Draw triangle (T): click the three corners">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M8 2.5l6 11H2z"/></svg><span class="lbl">Triangle</span> <kbd>T</kbd>
+          </button>
+          <button data-tool="text" title="Text (A): click to place the top-left corner, then type in the panel">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13.5 8 2.5l5 11M5 9.5h6"/></svg><span class="lbl">Text</span> <kbd>A</kbd>
+          </button>
+        </div>
+        <div class="spacer"></div>
+        <div class="zoom" role="group" aria-label="Zoom">
+          <button type="button" id="zoomOut" title="Zoom out (−)" aria-label="Zoom out">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 8h10"/></svg>
+          </button>
+          <button type="button" id="zoomFit" class="zl mono" title="Fit the whole screen (0)">100%</button>
+          <button type="button" id="zoomIn" title="Zoom in (+)" aria-label="Zoom in">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 8h10M8 3v10"/></svg>
+          </button>
+        </div>
+        <label class="chk" title="Show pixel grid (G)"><input type="checkbox" id="gridChk" checked> Grid</label>
+        <button class="btn sm danger" id="clearBtn" title="Remove all shapes (undoable)">Clear all</button>
+      </div>
+      <div class="canvas-wrap" id="canvasWrap">
+        <canvas id="screen" aria-label="640 by 480 VGA drawing area"></canvas>
+      </div>
+      <div class="status">
+        <span id="statusPos">Move over the screen to see coordinates.</span>
+        <span id="statusHint"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>Generated Verilog</h2>
+        <div class="seg small" role="group" aria-label="Output">
+          <button data-mode="snippet" title="Only the background and shape code, to paste into your module">Snippet</button>
+          <button data-mode="full" title="The whole My_Top_Module.v with the shapes wired into Vga_Display">Full top module</button>
+        </div>
+        <span class="grow"></span>
+        <div class="code-opts">
+          <label class="chk" title="Emit the background_colour wire and assign"><input type="checkbox" id="optBg" checked> Declare background</label>
+          <label class="chk"><input type="checkbox" id="optComments" checked> Comments</label>
+          <button class="btn sm" id="saveBtn" title="Save the code as a .v file">Save .v</button>
+          <button class="btn sm" id="copyBtn">Copy</button>
+        </div>
+      </div>
+      <details class="steps">
+        <summary>How to put it on the Basys 3</summary>
+        <ol>
+          <li>Plug a monitor into the Basys 3 VGA port.</li>
+          <li>In Vivado, make a project for <code>xc7a35tcpg236-1</code> and add <code>sources/design sources/vga_modules.v</code> as a design source. It already contains <code>vga_controller</code>, so don't add <code>vga_controler.v</code> as well.</li>
+          <li>Add <code>sources/Constraints/Basys3_Master.xdc</code> as the constraints file.</li>
+          <li>Draw your design here, choose <b>Full top module</b> and copy it.</li>
+          <li>Paste it into a new design source, set it as the top module, and generate the bitstream.</li>
+        </ol>
+      </details>
+      <pre id="code" class="mono" aria-label="Generated Verilog code"></pre>
+    </div>
+  </section>
+
+  <aside class="col-side">
+    <div class="card">
+      <div class="card-head"><h2>Colour</h2></div>
+      <div class="card-body">
+        <div class="targets">
+          <button class="target" data-target="shape" title="Colour for the selected shape and for new shapes">
+            <span class="sw" id="swShape"></span><span><b>Shape</b><small class="mono" id="lblShape"></small></span>
+          </button>
+          <button class="target" data-target="bg" title="background_colour: what shows behind every shape">
+            <span class="sw" id="swBg"></span><span><b>Background</b><small class="mono" id="lblBg"></small></span>
+          </button>
+        </div>
+        <div class="picker">
+          <canvas id="wheel" aria-label="Colour wheel: hue around, saturation outwards"></canvas>
+          <div class="picker-side">
+            <div class="big-sw" id="bigSw" title="How the colour looks after RGB444 conversion"></div>
+            <div class="field">Web colour (24-bit)
+              <div class="inp"><span>#</span><input id="hex24" class="mono" maxlength="6" spellcheck="false" autocomplete="off"></div>
+            </div>
+            <div class="field">RGB444 (VGA)
+              <div class="inp"><span class="mono">12'h</span><input id="hex12" class="mono" maxlength="3" spellcheck="false" autocomplete="off"></div>
+            </div>
+          </div>
+        </div>
+        <div class="slider-row val">
+          <label for="valSlider">Brightness</label>
+          <input type="range" class="grad" id="valSlider" min="0" max="100" step="1">
+          <span class="q mono" id="valOut"></span>
+        </div>
+        <div class="slider-row">
+          <label for="rSlider">R</label>
+          <input type="range" class="grad" id="rSlider" min="0" max="255" step="1" data-ch="0">
+          <input type="number" class="num" id="rNum" min="0" max="255" step="1" data-ch="0" aria-label="Red 0 to 255">
+          <span class="q mono" id="rQ" title="4-bit value sent to vgaRed"></span>
+        </div>
+        <div class="slider-row">
+          <label for="gSlider">G</label>
+          <input type="range" class="grad" id="gSlider" min="0" max="255" step="1" data-ch="1">
+          <input type="number" class="num" id="gNum" min="0" max="255" step="1" data-ch="1" aria-label="Green 0 to 255">
+          <span class="q mono" id="gQ" title="4-bit value sent to vgaGreen"></span>
+        </div>
+        <div class="slider-row">
+          <label for="bSlider">B</label>
+          <input type="range" class="grad" id="bSlider" min="0" max="255" step="1" data-ch="2">
+          <input type="number" class="num" id="bNum" min="0" max="255" step="1" data-ch="2" aria-label="Blue 0 to 255">
+          <span class="q mono" id="bQ" title="4-bit value sent to vgaBlue"></span>
+        </div>
+        <div class="bits-wrap">
+          <div class="bits-head"><span>12-bit colour bus: click a bit to flip it</span><span class="mono">[11:0]</span></div>
+          <div class="bits" id="bits"></div>
+          <div class="bit-labels"><span>R [11:8]</span><span>G [7:4]</span><span>B [3:0]</span></div>
+        </div>
+        <div class="presets" id="presets"></div>
+        <p class="note">VGA colour = <code>{R[7:4], G[7:4], B[7:4]}</code>: the low 4 bits of each 0–255 channel are dropped, leaving 4096 colours. Alt+click the screen to pick a colour from it.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Selected shape</h2></div>
+      <div class="card-body" id="props"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Draw order</h2><span class="grow"></span><small style="color:var(--faint);font-size:12px" id="layerCount"></small></div>
+      <div class="card-body">
+        <ul class="layers" id="layers"></ul>
+        <p class="layers-hint">Each shape is drawn over the output of the one above it. Drag rows or use the arrows to reorder.</p>
+        <p class="layers-hint" id="resInfo"></p>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<dialog id="importDlg">
+  <form method="dialog">
+    <div class="dlg-head">
+      <h3>Import Verilog</h3>
+      <p>Paste code with <code>rectangle</code> / <code>circle</code> / <code>triangle</code> / <code>character</code> instances (and optionally <code>assign background_colour = …;</code>). Designs from the OLED designer work too: their 16'h colours are converted. This replaces the current drawing; Undo brings it back.</p>
+    </div>
+    <div class="dlg-body">
+      <textarea id="importText" class="mono" spellcheck="false" placeholder="rectangle rectangle1 ( .x (x), .y (y), .leftx (10'd100), ... );"></textarea>
+      <div class="dlg-msg" id="importMsg"></div>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn left" type="button" id="exampleBtn">Load example scene</button>
+      <button class="btn" value="cancel" formnovalidate>Cancel</button>
+      <button class="btn primary" type="button" id="doImportBtn">Import</button>
+    </div>
+  </form>
+</dialog>
+<div id="toast" role="status" aria-live="polite"></div>
+<script>
+(() => {
+'use strict';
+
+/* =====================================================================
+   Constants and small helpers
+   ===================================================================== */
+const W = 640, H = 480;          // VGA display area; x = 0-639, y = 0-479
+const MAX_X = W - 1, MAX_Y = H - 1;
+const MAX_R = 1023;              // radius is a 10-bit port
+const XB = 10, YB = 9;           // port widths: x-like ports 10'd, y-like ports 9'd
+const NUDGE_BIG = 8;             // Shift + arrow key
+const STORE_KEY = 'vga-shape-designer:v1';
+const THEME_KEY = 'vga-shape-designer:theme';
+
+const $ = (id) => document.getElementById(id);
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+const toInt = (v, lo, hi) => clamp(Math.round(Number(v)) || 0, lo, hi);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+/* =====================================================================
+   Colour maths. RGB444 = RRRRGGGGBBBB, built by dropping the low 4 bits
+   of each channel (R>>4, G>>4, B>>4), so 255,192,203 -> 12'hFCC.
+   ===================================================================== */
+const to444 = ([r, g, b]) => ((r >> 4) << 8) | ((g >> 4) << 4) | (b >> 4);
+const split444 = (c) => [(c >> 8) & 15, (c >> 4) & 15, c & 15];
+const from444 = (c) => split444(c).map((v) => v * 17);      // what the monitor shows, back in 0-255
+function from565(c) {                                        // for importing OLED designer code
+  const r5 = (c >> 11) & 31, g6 = (c >> 5) & 63, b5 = c & 31;
+  return [(r5 << 3) | (r5 >> 2), (g6 << 2) | (g6 >> 4), (b5 << 3) | (b5 >> 2)];
+}
+const hex3 = (c) => c.toString(16).toUpperCase().padStart(3, '0');
+const hex6 = (rgb) => rgb.map((v) => v.toString(16).padStart(2, '0')).join('').toUpperCase();
+const css444 = (c) => { const [r, g, b] = from444(c); return `rgb(${r}, ${g}, ${b})`; };
+const cssOf = (rgb) => css444(to444(rgb));
+const v444 = (rgb) => `12'h${hex3(to444(rgb))}`;
+
+function rgbToHsv([r, g, b]) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+  let h = 0;
+  if (d) {
+    if (max === r) h = ((g - b) / d) % 6;
+    else if (max === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h *= 60; if (h < 0) h += 360;
+  }
+  return { h, s: max ? d / max : 0, v: max };
+}
+function hsvToRgb(h, s, v) {
+  const c = v * s, x = c * (1 - Math.abs(((h / 60) % 2) - 1)), m = v - c;
+  let r = 0, g = 0, b = 0;
+  if (h < 60) [r, g] = [c, x]; else if (h < 120) [r, g] = [x, c]; else if (h < 180) [g, b] = [c, x];
+  else if (h < 240) [g, b] = [x, c]; else if (h < 300) [r, b] = [x, c]; else [r, b] = [c, x];
+  return [Math.round((r + m) * 255), Math.round((g + m) * 255), Math.round((b + m) * 255)];
+}
+
+/* =====================================================================
+   5x7 font, unchanged from https://github.com/petabyt/font (font.h,
+   MIT licence, (c) 2020 Petabyte). Each glyph is 35 bits: 7 rows of 5,
+   top row first, '1' = pixel on. Same data as the character module.
+   ===================================================================== */
+const FONT = {
+  "a": "00000000000111000001011111000101111",
+  "b": "10000100001111010001100011000111110",
+  "c": "00000000000111010001100001000101110",
+  "d": "00001000010111110001100011000101111",
+  "e": "00000000000111010001111111000001111",
+  "f": "00110010010100011100010000100001000",
+  "g": "00000011111000110001011110000111110",
+  "h": "10000100001111010001100011000110001",
+  "i": "10000000001000010000100001000010000",
+  "j": "00001000000001100001000011000101110",
+  "k": "10000100001000110010111001001010001",
+  "l": "10000100001000010000100001000011000",
+  "m": "00000000001111010101101011010110101",
+  "n": "00000000001111010001100011000110001",
+  "o": "00000000000111010001100011000101110",
+  "p": "00000011100100101001011100100001000",
+  "q": "00000000000011101001001110000100001",
+  "r": "00000000001011111000100001000010000",
+  "s": "00000000000111110000011100000111110",
+  "t": "01000010001110001000010000100000110",
+  "u": "00000000001000110001100011000101110",
+  "v": "00000000001000110001100010101000100",
+  "w": "00000000001000110001101011010101010",
+  "x": "00000000001000101010001000101010001",
+  "y": "00000000001000110001011110000111110",
+  "z": "00000000001111100010001000100011111",
+  "A": "01110100011000110001111111000110001",
+  "B": "11110100011000111110100011000111110",
+  "C": "01111100001000010000100001000001111",
+  "D": "11110100011000110001100011000111110",
+  "E": "11111100001000011111100001000011111",
+  "F": "11111100001000011111100001000010000",
+  "G": "01111100001000010011100011000101111",
+  "H": "10001100011000111111100011000110001",
+  "I": "10000100001000010000100001000010000",
+  "J": "00001000010000100001000010000111110",
+  "K": "10001100101010011000101001001010001",
+  "L": "10000100001000010000100001000011111",
+  "M": "10001110111010110001100011000110001",
+  "N": "10001110011010110011100011000110001",
+  "O": "01110100011000110001100011000101110",
+  "P": "11110100011000111110100001000010000",
+  "Q": "01110100011000110001100011001101111",
+  "R": "11110100011000110001111101000110001",
+  "S": "01111100001000001110000010000111110",
+  "T": "11111001000010000100001000010000100",
+  "U": "10001100011000110001100011000101110",
+  "V": "10001100011000110001100010101000100",
+  "W": "10001100011000110001101011101110001",
+  "X": "10001100010101000100010101000110001",
+  "Y": "10001100011000101110001000010000100",
+  "Z": "11111000010001000100010001000011111",
+  "0": "01110100011001110101110011000101110",
+  "1": "11000010000100001000010000100001000",
+  "2": "01110100010000100110010001000011111",
+  "3": "11110000010000101110000010000111110",
+  "4": "10001100011000111111000010000100001",
+  "5": "11111100001000011110000010000111110",
+  "6": "01111100001000001110100011000101110",
+  "7": "11111000010000100110010000100001000",
+  "8": "01110100011000101110100011000101110",
+  "9": "01110100011000101111000010000101110",
+  ",": "00000000000000000000000000010001000",
+  ".": "00000000000000000000000000000010000",
+};
+const MAX_SCALE = 68;                              // 7 * 68 = 476 rows, the tallest that fits
+const MAX_TEXT = 64;
+const cleanText = (t) => String(t == null ? '' : t).replace(/[^A-Za-z0-9,. ]/g, '').slice(0, MAX_TEXT);
+const GLYPH_W = {};                                // columns each glyph actually uses
+for (const [c, bits] of Object.entries(FONT)) {
+  let w = 0;
+  for (let i = 0; i < 35; i++) if (bits[i] === '1') w = Math.max(w, i % 5 + 1);
+  GLYPH_W[c] = w;
+}
+// Letter positions spaced like the font's lib.c: each glyph advances by its
+// used width + 2 and a space by 5, all times the scale.
+function layoutText(s) {
+  const out = [];
+  let x = s.leftx;
+  for (const c of s.text) {
+    if (c === ' ') { x += 5 * s.scale; continue; }
+    if (!FONT[c]) continue;
+    if (x > MAX_X) break;                          // past the right edge is invisible anyway
+    out.push({ c, x });
+    x += (GLYPH_W[c] + 2) * s.scale;
+  }
+  return out;
+}
+// Same test as the character module: the font pixel at (dx / scale, dy / scale)
+function charLit(c, ox, oy, sc, x, y) {
+  const dx = x - ox, dy = y - oy;
+  if (dx < 0 || dy < 0 || dx >= 5 * sc || dy >= 7 * sc) return false;
+  return FONT[c][Math.floor(dy / sc) * 5 + Math.floor(dx / sc)] === '1';
+}
+function textBox(s) {                              // [x0, y0, x1, y1] around the drawn letters
+  const L = layoutText(s), last = L[L.length - 1];
+  const x1 = last ? last.x + Math.max(1, GLYPH_W[last.c]) * s.scale - 1 : s.leftx + 5 * s.scale - 1;
+  return [s.leftx, s.upy, x1, s.upy + 7 * s.scale - 1];
+}
+
+/* =====================================================================
+   Document state. Shapes are stored with the exact port names of the
+   rectangle / circle / triangle / character modules, in draw order
+   (index 0 = drawn first). A text shape becomes one character per letter.
+   ===================================================================== */
+const EXAMPLE = {
+  bg: [32, 48, 96],                                                                                // 12'h236
+  shapes: [
+    { type: 'rectangle', leftx: 0, rightx: 639, upy: 360, downy: 479, rgb: [48, 144, 64] },         // 12'h394 grass
+    { type: 'circle', centrex: 530, centrey: 110, radius: 56, rgb: [255, 208, 0] },                 // 12'hFD0 sun
+    { type: 'triangle', x1: 60, y1: 360, x2: 230, y2: 150, x3: 400, y3: 360, rgb: [112, 112, 144] }, // 12'h779 mountain
+    { type: 'rectangle', leftx: 420, rightx: 579, upy: 260, downy: 379, rgb: [224, 128, 64] },      // 12'hE84 house
+    { type: 'triangle', x1: 400, y1: 260, x2: 500, y2: 180, x3: 600, y3: 260, rgb: [160, 32, 32] },  // 12'hA22 roof
+    { type: 'rectangle', leftx: 440, rightx: 479, upy: 280, downy: 319, rgb: [160, 208, 255] },     // 12'hADF square window
+    { type: 'rectangle', leftx: 510, rightx: 549, upy: 310, downy: 379, rgb: [96, 48, 16] },        // 12'h631 door
+    { type: 'text', leftx: 40, upy: 40, scale: 5, text: 'Hello VGA', rgb: [255, 255, 255] },        // 12'hFFF
+  ],
+};
+
+let nextId = 1;
+let doc = { bg: [0, 0, 0], shapes: [] };
+let selectedId = null;
+let tool = 'rectangle';
+let colourTarget = 'shape';          // 'shape' | 'bg'
+let drawRgb = [0, 0, 255];           // colour for new shapes
+let textScale = 4;                   // scale for new text
+const opts = { declareBg: true, comments: true, grid: true, full: true };
+
+function cleanRgb(rgb, fallback) {
+  return Array.isArray(rgb) && rgb.length === 3 ? rgb.map((v) => toInt(v, 0, 255)) : fallback.slice();
+}
+function cleanShape(s) {
+  if (!s || typeof s !== 'object') return null;
+  const rgb = cleanRgb(s.rgb, [255, 255, 255]);
+  const note = String(s.note || '').replace(/[\r\n]+/g, ' ').slice(0, 80);
+  if (s.type === 'rectangle') {
+    let l = toInt(s.leftx, 0, MAX_X), r = toInt(s.rightx, 0, MAX_X);
+    let u = toInt(s.upy, 0, MAX_Y), d = toInt(s.downy, 0, MAX_Y);
+    if (l > r) [l, r] = [r, l];
+    if (u > d) [u, d] = [d, u];
+    return { id: nextId++, type: 'rectangle', leftx: l, rightx: r, upy: u, downy: d, rgb, note };
+  }
+  if (s.type === 'circle') {
+    return { id: nextId++, type: 'circle', centrex: toInt(s.centrex, 0, MAX_X), centrey: toInt(s.centrey, 0, MAX_Y),
+             radius: toInt(s.radius, 0, MAX_R), rgb, note };
+  }
+  if (s.type === 'triangle') {
+    return { id: nextId++, type: 'triangle',
+             x1: toInt(s.x1, 0, MAX_X), y1: toInt(s.y1, 0, MAX_Y), x2: toInt(s.x2, 0, MAX_X),
+             y2: toInt(s.y2, 0, MAX_Y), x3: toInt(s.x3, 0, MAX_X), y3: toInt(s.y3, 0, MAX_Y), rgb, note };
+  }
+  if (s.type === 'text') {
+    return { id: nextId++, type: 'text', leftx: toInt(s.leftx, 0, MAX_X), upy: toInt(s.upy, 0, MAX_Y),
+             scale: toInt(s.scale, 1, MAX_SCALE), text: cleanText(s.text), rgb, note };
+  }
+  return null;
+}
+function makeDoc(src) {
+  return { bg: cleanRgb(src.bg, [0, 0, 0]), shapes: (src.shapes || []).map(cleanShape).filter(Boolean) };
+}
+
+const getShape = (id) => doc.shapes.find((s) => s.id === id) || null;
+const selected = () => getShape(selectedId);
+
+// Names follow draw order per type: rectangle1, rectangle2, circle1, text1 ...
+function nameMap() {
+  const n = { rectangle: 0, circle: 0, triangle: 0, text: 0 }, m = new Map();
+  for (const s of doc.shapes) m.set(s.id, s.type + (++n[s.type]));
+  return m;
+}
+
+/* =====================================================================
+   Geometry: identical tests to the rectangle, circle, triangle and
+   character modules in vga_modules.v
+   ===================================================================== */
+// triangle: inside or on an edge when the three edge functions never disagree in sign
+function triInside(s, x, y) {
+  if (x < Math.min(s.x1, s.x2, s.x3) || x > Math.max(s.x1, s.x2, s.x3) ||
+      y < Math.min(s.y1, s.y2, s.y3) || y > Math.max(s.y1, s.y2, s.y3)) return false;
+  const e1 = (s.x2 - s.x1) * (y - s.y1) - (s.y2 - s.y1) * (x - s.x1);
+  const e2 = (s.x3 - s.x2) * (y - s.y2) - (s.y3 - s.y2) * (x - s.x2);
+  const e3 = (s.x1 - s.x3) * (y - s.y3) - (s.y1 - s.y3) * (x - s.x3);
+  return !((e1 < 0 || e2 < 0 || e3 < 0) && (e1 > 0 || e2 > 0 || e3 > 0));
+}
+function inside(s, x, y) {
+  if (s.type === 'rectangle') return x >= s.leftx && x <= s.rightx && y >= s.upy && y <= s.downy;
+  if (s.type === 'triangle') return triInside(s, x, y);
+  if (s.type === 'text') return layoutText(s).some((g) => charLit(g.c, g.x, s.upy, s.scale, x, y));
+  const dx = x - s.centrex, dy = y - s.centrey;
+  return dx * dx + dy * dy <= s.radius * s.radius;
+}
+function bounds(s) {          // [x0, y0, x1, y1], unclipped
+  if (s.type === 'rectangle') return [s.leftx, s.upy, s.rightx, s.downy];
+  if (s.type === 'triangle') {
+    return [Math.min(s.x1, s.x2, s.x3), Math.min(s.y1, s.y2, s.y3), Math.max(s.x1, s.x2, s.x3), Math.max(s.y1, s.y2, s.y3)];
+  }
+  if (s.type === 'text') return textBox(s);
+  return [s.centrex - s.radius, s.centrey - s.radius, s.centrex + s.radius, s.centrey + s.radius];
+}
+// For picking with the mouse, text counts as its whole box (letters are thin)
+function hits(s, x, y) {
+  if (s.type !== 'text') return inside(s, x, y);
+  const [a, b, c, d] = textBox(s);
+  return x >= a && x <= c && y >= b && y <= d;
+}
+function pickShapeAt(x, y) {
+  for (let i = doc.shapes.length - 1; i >= 0; i--) if (hits(doc.shapes[i], x, y)) return doc.shapes[i];
+  return null;
+}
+function topShapeAt(x, y) {
+  for (let i = doc.shapes.length - 1; i >= 0; i--) if (inside(doc.shapes[i], x, y)) return doc.shapes[i];
+  return null;
+}
+
+/* =====================================================================
+   Frame buffer: the 12-bit colour of every pixel, exactly as the module
+   chain draws it. Shapes are filled span by span (307,200 pixels is too
+   many to test one by one on every mouse move) and only redrawn when the
+   document changes.
+   ===================================================================== */
+const fb = new Uint16Array(W * H);
+let fbKey = null;
+function fillSpan(y, x0, x1, c) {
+  if (y < 0 || y > MAX_Y) return;
+  x0 = Math.max(0, x0); x1 = Math.min(MAX_X, x1);
+  if (x0 <= x1) fb.fill(c, y * W + x0, y * W + x1 + 1);
+}
+function paint(s, c) {
+  if (s.type === 'rectangle') {
+    for (let y = s.upy; y <= s.downy; y++) fillSpan(y, s.leftx, s.rightx, c);
+  } else if (s.type === 'circle') {
+    const r2 = s.radius * s.radius;
+    for (let dy = -s.radius; dy <= s.radius; dy++) {
+      const rem = r2 - dy * dy;
+      let h = Math.floor(Math.sqrt(rem));            // widest dx with dx^2 + dy^2 <= r^2
+      while (h * h > rem) h--;
+      while ((h + 1) * (h + 1) <= rem) h++;
+      fillSpan(s.centrey + dy, s.centrex - h, s.centrex + h, c);
+    }
+  } else if (s.type === 'triangle') {
+    const [a, b, e, f] = bounds(s);
+    for (let y = b; y <= Math.min(MAX_Y, f); y++) {
+      for (let x = a; x <= Math.min(MAX_X, e); x++) if (triInside(s, x, y)) fb[y * W + x] = c;
+    }
+  } else {
+    const sc = s.scale;
+    for (const g of layoutText(s)) {
+      const bits = FONT[g.c];
+      for (let i = 0; i < 35; i++) {
+        if (bits[i] !== '1') continue;
+        const x0 = g.x + (i % 5) * sc, y0 = s.upy + Math.floor(i / 5) * sc;
+        for (let y = y0; y < y0 + sc; y++) fillSpan(y, x0, x0 + sc - 1, c);
+      }
+    }
+  }
+}
+function rasterize() {
+  const key = snap();
+  if (key === fbKey) return;
+  fbKey = key;
+  fb.fill(to444(doc.bg));
+  for (const s of doc.shapes) paint(s, to444(s.rgb));
+  for (let i = 0; i < fb.length; i++) px32[i] = LUT[fb[i]];
+  offCtx.putImageData(img, 0, 0);
+}
+
+/* =====================================================================
+   Undo history (snapshots of the document) and local saving
+   ===================================================================== */
+const hist = { stack: [], idx: -1 };
+const snap = () => JSON.stringify(doc);
+
+function commit() {
+  const s = snap();
+  if (hist.stack[hist.idx] === s) return;
+  hist.stack.length = hist.idx + 1;
+  hist.stack.push(s);
+  if (hist.stack.length > 300) hist.stack.shift();
+  hist.idx = hist.stack.length - 1;
+  save();
+  refreshUndo();
+}
+function restore(i) {
+  hist.idx = i;
+  doc = JSON.parse(hist.stack[i]);
+  if (!selected()) selectedId = null;
+  gesture = null;
+  syncAll();
+  save();
+}
+function undo() {
+  if (hist.idx < 0) return;
+  if (snap() !== hist.stack[hist.idx]) return restore(hist.idx);   // drop an unfinished edit first
+  if (hist.idx > 0) restore(hist.idx - 1);
+}
+function redo() { if (hist.idx < hist.stack.length - 1) restore(hist.idx + 1); }
+function refreshUndo() {
+  $('undoBtn').disabled = hist.idx <= 0 && snap() === hist.stack[hist.idx];
+  $('redoBtn').disabled = hist.idx >= hist.stack.length - 1;
+}
+
+function save() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify({ doc, opts, drawRgb })); } catch (e) { /* storage unavailable */ }
+}
+function load() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (!raw) return false;
+    const d = JSON.parse(raw);
+    doc = makeDoc(d.doc || {});
+    if (d.opts) for (const k of Object.keys(opts)) if (typeof d.opts[k] === 'boolean') opts[k] = d.opts[k];
+    drawRgb = cleanRgb(d.drawRgb, drawRgb);
+    return true;
+  } catch (e) { return false; }
+}
+
+/* =====================================================================
+   Canvas: viewport (zoom + pan), rendering, pointer interaction.
+   M.cell is device pixels per screen pixel; (M.gx, M.gy) is where screen
+   pixel (0, 0) lands on the canvas.
+   ===================================================================== */
+const cv = $('screen'), ctx = cv.getContext('2d');
+const off = document.createElement('canvas');
+off.width = W; off.height = H;
+const offCtx = off.getContext('2d');
+const img = offCtx.createImageData(W, H);
+const px32 = new Uint32Array(img.data.buffer);
+const LUT = new Uint32Array(4096);                   // 12-bit colour -> RGBA pixel (little-endian)
+for (let c = 0; c < 4096; c++) { const [r, g, b] = from444(c); LUT[c] = ((255 << 24) | (b << 16) | (g << 8) | r) >>> 0; }
+
+const RULER = 30, PAD = 12;                          // CSS px
+const ZOOMS = [0.5, 0.75, 1, 1.5, 2, 3, 4, 6, 8, 12, 16, 24, 32];   // CSS px per screen pixel
+const M = { dpr: 1, cell: 1, gx: 0, gy: 0, ruler: RULER, pad: PAD };
+const view = { fit: true, cell: 1, cx: W / 2, cy: H / 2 };          // (cx, cy): screen point in the middle of the view
+let theme = {};
+let gesture = null;                                  // active draw / move / resize / pan
+let hover = null;                                    // last pointer position over the canvas
+let spaceDown = false;
+
+function readTheme() {
+  const cs = getComputedStyle(document.documentElement), v = (n) => cs.getPropertyValue(n).trim();
+  theme = { bg: v('--canvas-bg'), ruler: v('--ruler'), text: v('--ruler-text'), tick: v('--ruler-tick'), accent: v('--accent') };
+}
+
+const areaW = () => cv.width - M.ruler;
+const areaH = () => cv.height - M.ruler;
+const fitCell = () => Math.max(0.1, Math.min((areaW() - 2 * M.pad) / W, (areaH() - 2 * M.pad) / H));
+
+function applyView() {
+  const aw = areaW(), ah = areaH();
+  if (view.fit) { view.cell = fitCell(); view.cx = W / 2; view.cy = H / 2; }
+  const c = view.cell, pad = M.pad / c;
+  view.cx = W * c + 2 * M.pad <= aw ? W / 2 : clamp(view.cx, aw / 2 / c - pad, W - aw / 2 / c + pad);
+  view.cy = H * c + 2 * M.pad <= ah ? H / 2 : clamp(view.cy, ah / 2 / c - pad, H - ah / 2 / c + pad);
+  M.cell = c;
+  M.gx = Math.round(M.ruler + aw / 2 - view.cx * c);
+  M.gy = Math.round(M.ruler + ah / 2 - view.cy * c);
+  const zl = $('zoomFit');
+  zl.textContent = Math.round(c / M.dpr * 100) + '%';
+  zl.setAttribute('aria-pressed', String(view.fit));
+}
+function setFit() { view.fit = true; applyView(); hover = null; requestDraw(); }
+// Zoom to `cell`, keeping the screen point under canvas position (ax, ay) still
+function zoomTo(cell, ax, ay) {
+  const fc = fitCell();
+  cell = clamp(cell, Math.min(fc, ZOOMS[0] * M.dpr), ZOOMS[ZOOMS.length - 1] * M.dpr);
+  if (Math.abs(cell - fc) < 1e-6) { setFit(); return; }
+  if (ax == null) { ax = M.ruler + areaW() / 2; ay = M.ruler + areaH() / 2; }
+  const fx = (ax - M.gx) / M.cell, fy = (ay - M.gy) / M.cell;
+  view.fit = false;
+  view.cell = cell;
+  view.cx = (M.ruler + areaW() / 2 - ax) / cell + fx;
+  view.cy = (M.ruler + areaH() / 2 - ay) / cell + fy;
+  applyView();
+  if (hover) hover = ptrAt(hover.dx, hover.dy, hover.shift);
+  requestDraw();
+}
+function zoomStep(dir, ax, ay) {
+  const cur = M.cell / M.dpr, fit = fitCell() / M.dpr;
+  let z = dir > 0 ? ZOOMS.find((v) => v > cur * 1.01) : [...ZOOMS].reverse().find((v) => v < cur * 0.99);
+  if (z == null) z = dir > 0 ? ZOOMS[ZOOMS.length - 1] : ZOOMS[0];
+  if (!view.fit && (dir > 0 ? cur < fit && z > fit : cur > fit && z < fit)) { setFit(); return; }   // stop at Fit on the way
+  zoomTo(z * M.dpr, ax, ay);
+}
+
+function layoutCanvas() {
+  const wrap = $('canvasWrap');
+  const dpr = window.devicePixelRatio || 1;
+  const cssW = wrap.clientWidth;
+  if (!cssW) return;
+  const want = Math.round((cssW - RULER - 2 * PAD) * H / W + RULER + 2 * PAD);
+  const cssH = Math.max(240, Math.min(want, window.innerHeight - 190));
+  if (wrap.style.height !== cssH + 'px') wrap.style.height = cssH + 'px';
+  const w = Math.round(cssW * dpr), h = Math.round(cssH * dpr);
+  if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+  cv.style.width = cssW + 'px';
+  cv.style.height = cssH + 'px';
+  if (dpr !== M.dpr && !view.fit) view.cell *= dpr / M.dpr;
+  Object.assign(M, { dpr, ruler: Math.round(RULER * dpr), pad: Math.round(PAD * dpr) });
+  applyView();
+  draw();
+}
+
+let drawQueued = false;
+function requestDraw() {
+  if (drawQueued) return;
+  drawQueued = true;
+  requestAnimationFrame(() => { drawQueued = false; draw(); });
+}
+
+function draw() {
+  rasterize();
+  const { cell, gx, gy, dpr, ruler } = M, gw = W * cell, gh = H * cell;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = theme.bg; ctx.fillRect(0, 0, cv.width, cv.height);
+
+  // The visible part of the screen, rendered exactly as the module chain would
+  const sx0 = clamp(Math.floor((ruler - gx) / cell), 0, W), sx1 = clamp(Math.ceil((cv.width - gx) / cell), 0, W);
+  const sy0 = clamp(Math.floor((ruler - gy) / cell), 0, H), sy1 = clamp(Math.ceil((cv.height - gy) / cell), 0, H);
+  ctx.imageSmoothingEnabled = false;
+  if (sx1 > sx0 && sy1 > sy0) {
+    ctx.drawImage(off, sx0, sy0, sx1 - sx0, sy1 - sy0, gx + sx0 * cell, gy + sy0 * cell, (sx1 - sx0) * cell, (sy1 - sy0) * cell);
+  }
+
+  // Grid: every 32 px, every 8 px and every pixel, as far as zoom allows
+  if (opts.grid) {
+    const step = cell >= 6 * dpr ? 1 : 8 * cell >= 12 * dpr ? 8 : 32;
+    const alpha = (i) => i % 32 === 0 ? .55 : i % 8 === 0 ? .32 : .16;
+    const top = Math.max(gy, ruler), bot = Math.min(gy + gh, cv.height), left = Math.max(gx, ruler), right = Math.min(gx + gw, cv.width);
+    for (let i = Math.ceil(sx0 / step) * step; i <= sx1; i += step) {
+      ctx.fillStyle = `rgba(128,128,128,${alpha(i)})`;
+      ctx.fillRect(Math.round(gx + i * cell), top, 1, bot - top);
+    }
+    for (let i = Math.ceil(sy0 / step) * step; i <= sy1; i += step) {
+      ctx.fillStyle = `rgba(128,128,128,${alpha(i)})`;
+      ctx.fillRect(left, Math.round(gy + i * cell), right - left, 1);
+    }
+  }
+  ctx.strokeStyle = 'rgba(128,128,128,.7)'; ctx.lineWidth = 1; ctx.setLineDash([]);
+  ctx.strokeRect(gx - .5, gy - .5, gw + 1, gh + 1);
+
+  // Hovered pixel while drawing
+  if (hover && hover.inGrid && tool !== 'select' && !gesture && cell >= 5 * dpr) {
+    const X = Math.round(gx + hover.x * cell), Y = Math.round(gy + hover.y * cell), C = Math.round(cell);
+    ctx.lineWidth = Math.max(1, dpr);
+    ctx.strokeStyle = 'rgba(0,0,0,.6)';
+    ctx.strokeRect(X + .5, Y + .5, C - 1, C - 1);
+    ctx.strokeStyle = 'rgba(255,255,255,.9)';
+    ctx.strokeRect(X + 1.5, Y + 1.5, C - 3, C - 3);
+  }
+
+  // Outline of the shape under the pointer (select tool)
+  if (tool === 'select' && !gesture && hover && hover.inGrid) {
+    const h = pickShapeAt(hover.x, hover.y);
+    if (h && h.id !== selectedId) outline(h, 'rgba(255,255,255,.85)', [3 * dpr, 3 * dpr]);
+  }
+
+  const s = selected();
+  if (s) {
+    outline(s, theme.accent, s.type === 'text' ? [4 * dpr, 3 * dpr] : null);
+    if (tool === 'select') for (const h of handlesOf(s)) handle(h, s.type === 'circle' || s.type === 'triangle');
+  }
+
+  drawRulers(sx0, sx1, sy0, sy1);
+  if (gesture && gesture.kind !== 'pan' && s) liveLabel(s);
+}
+
+function drawRulers(sx0, sx1, sy0, sy1) {
+  const { cell, gx, gy, dpr, ruler } = M;
+  ctx.fillStyle = theme.ruler;
+  ctx.fillRect(0, 0, cv.width, ruler - dpr);
+  ctx.fillRect(0, 0, ruler - dpr, cv.height);
+  if (hover && hover.inGrid) {
+    const w = Math.max(cell, 2 * dpr);
+    ctx.fillStyle = theme.accent; ctx.globalAlpha = .3;
+    ctx.fillRect(gx + hover.x * cell, 0, w, ruler - dpr);
+    ctx.fillRect(0, gy + hover.y * cell, ruler - dpr, w);
+    ctx.globalAlpha = 1;
+  }
+  // Labels as far apart as needed to stay readable; ticks in between
+  const label = [1, 2, 4, 8, 16, 32, 64, 128].find((v) => v * cell >= 44 * dpr) || 128;
+  const tick = [8, 4, 2].map((d) => label / d).find((v) => Number.isInteger(v) && v * cell >= 5 * dpr) || label;
+  ctx.fillStyle = theme.tick;
+  for (let i = Math.ceil(sx0 / tick) * tick; i <= sx1; i += tick) {
+    const X = Math.round(gx + i * cell), len = (i % label === 0 ? 8 : 3) * dpr;
+    if (X >= ruler) ctx.fillRect(X, ruler - dpr - len, 1, len);
+  }
+  for (let i = Math.ceil(sy0 / tick) * tick; i <= sy1; i += tick) {
+    const Y = Math.round(gy + i * cell), len = (i % label === 0 ? 8 : 3) * dpr;
+    if (Y >= ruler) ctx.fillRect(ruler - dpr - len, Y, len, 1);
+  }
+  ctx.fillStyle = theme.text;
+  ctx.font = `${Math.round(10 * dpr)}px ui-monospace, Consolas, monospace`;
+  ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  for (let i = Math.ceil(sx0 / label) * label; i <= sx1; i += label) {
+    const X = Math.round(gx + i * cell);
+    if (X >= ruler) ctx.fillText(String(i), X + 3 * dpr, 4 * dpr);
+  }
+  ctx.textAlign = 'right';
+  for (let i = Math.ceil(sy0 / label) * label; i <= sy1; i += label) {
+    const Y = Math.round(gy + i * cell);
+    if (Y >= ruler) ctx.fillText(String(i), ruler - 4 * dpr, Y + 3 * dpr);
+  }
+  ctx.fillStyle = theme.ruler;
+  ctx.fillRect(0, 0, ruler - dpr, ruler - dpr);
+}
+
+function outline(s, color, dash) {
+  const { cell, gx, gy, dpr } = M;
+  ctx.save();
+  ctx.beginPath();
+  if (s.type === 'rectangle') {
+    ctx.rect(gx + s.leftx * cell, gy + s.upy * cell, (s.rightx - s.leftx + 1) * cell, (s.downy - s.upy + 1) * cell);
+  } else if (s.type === 'triangle') {             // through the centres of the corner pixels
+    ctx.moveTo(gx + (s.x1 + .5) * cell, gy + (s.y1 + .5) * cell);
+    ctx.lineTo(gx + (s.x2 + .5) * cell, gy + (s.y2 + .5) * cell);
+    ctx.lineTo(gx + (s.x3 + .5) * cell, gy + (s.y3 + .5) * cell);
+    ctx.closePath();
+  } else if (s.type === 'text') {
+    const [a, b, c, d] = textBox(s);
+    ctx.rect(gx + a * cell, gy + b * cell, (c - a + 1) * cell, (d - b + 1) * cell);
+  } else {
+    ctx.arc(gx + (s.centrex + .5) * cell, gy + (s.centrey + .5) * cell, (s.radius + .5) * cell, 0, Math.PI * 2);
+  }
+  ctx.lineWidth = 3.5 * dpr; ctx.strokeStyle = 'rgba(0,0,0,.55)'; ctx.setLineDash([]); ctx.stroke();
+  ctx.lineWidth = 1.6 * dpr; ctx.strokeStyle = color; ctx.setLineDash(dash || []); ctx.stroke();
+  if (s.type === 'circle') {                            // mark the centre pixel
+    const sz = Math.max(cell, 3 * dpr), cx = gx + (s.centrex + .5) * cell - sz / 2, cy = gy + (s.centrey + .5) * cell - sz / 2;
+    ctx.setLineDash([]);
+    ctx.lineWidth = 3 * dpr; ctx.strokeStyle = 'rgba(0,0,0,.55)'; ctx.strokeRect(cx, cy, sz, sz);
+    ctx.lineWidth = 1.2 * dpr; ctx.strokeStyle = color; ctx.strokeRect(cx, cy, sz, sz);
+  }
+  ctx.restore();
+}
+
+function handlesOf(s) {
+  const { cell, gx, gy } = M;
+  if (s.type === 'rectangle') {
+    const x0 = gx + s.leftx * cell, x1 = gx + (s.rightx + 1) * cell, y0 = gy + s.upy * cell, y1 = gy + (s.downy + 1) * cell;
+    const xm = (x0 + x1) / 2, ym = (y0 + y1) / 2;
+    return [
+      { hx: -1, hy: -1, px: x0, py: y0, cur: 'nwse-resize' }, { hx: 0, hy: -1, px: xm, py: y0, cur: 'ns-resize' },
+      { hx: 1, hy: -1, px: x1, py: y0, cur: 'nesw-resize' },  { hx: 1, hy: 0, px: x1, py: ym, cur: 'ew-resize' },
+      { hx: 1, hy: 1, px: x1, py: y1, cur: 'nwse-resize' },   { hx: 0, hy: 1, px: xm, py: y1, cur: 'ns-resize' },
+      { hx: -1, hy: 1, px: x0, py: y1, cur: 'nesw-resize' },  { hx: -1, hy: 0, px: x0, py: ym, cur: 'ew-resize' },
+    ];
+  }
+  if (s.type === 'triangle') {
+    return [1, 2, 3].map((k) => ({ vi: k, px: gx + (s['x' + k] + .5) * cell, py: gy + (s['y' + k] + .5) * cell, cur: 'move' }));
+  }
+  if (s.type === 'text') {                          // bottom-right corner sets the scale
+    const [, , c, d] = textBox(s);
+    return [{ tscale: true, px: gx + (c + 1) * cell, py: gy + (d + 1) * cell, cur: 'nwse-resize' }];
+  }
+  const cx = gx + (s.centrex + .5) * cell, cy = gy + (s.centrey + .5) * cell, r = s.radius * cell;
+  return [
+    { px: cx + r, py: cy, cur: 'ew-resize' }, { px: cx - r, py: cy, cur: 'ew-resize' },
+    { px: cx, py: cy - r, cur: 'ns-resize' }, { px: cx, py: cy + r, cur: 'ns-resize' },
+  ];
+}
+function handle(h, round) {
+  const sz = 4.5 * M.dpr;
+  ctx.beginPath();
+  if (round) ctx.arc(h.px, h.py, sz, 0, Math.PI * 2); else ctx.rect(h.px - sz, h.py - sz, sz * 2, sz * 2);
+  ctx.fillStyle = '#fff'; ctx.fill();
+  ctx.lineWidth = 1.6 * M.dpr; ctx.strokeStyle = theme.accent; ctx.setLineDash([]); ctx.stroke();
+}
+function hitHandle(s, p) {
+  const insideShape = p.inGrid && inside(s, p.x, p.y);
+  const tol = (insideShape ? 4 : 8) * M.dpr;               // let small shapes still be dragged by their body
+  let best = null, bestD = Infinity;
+  for (const h of handlesOf(s)) {
+    const d = Math.max(Math.abs(p.dx - h.px), Math.abs(p.dy - h.py));
+    if (d < tol && d < bestD) { bestD = d; best = h; }
+  }
+  return best;
+}
+
+function liveLabel(s) {
+  const { dpr } = M;
+  let text;
+  if (s.type === 'rectangle') {
+    const w = s.rightx - s.leftx + 1, h = s.downy - s.upy + 1;
+    text = `${w} × ${h}${w === h ? ' square' : ''}   (${s.leftx},${s.upy})–(${s.rightx},${s.downy})`;
+  }
+  else if (s.type === 'circle') text = `r = ${s.radius}   centre (${s.centrex},${s.centrey})`;
+  else if (s.type === 'text') { const [a, b, c, d] = textBox(s); text = `scale ${s.scale}   ${c - a + 1} × ${d - b + 1}   at (${s.leftx},${s.upy})`; }
+  else if (gesture.kind === 'tri') text = gesture.phase === 1 ? `corner 2 → (${s.x2},${s.y2})   click to place` : `corner 3 → (${s.x3},${s.y3})   click to finish`;
+  else text = `(${s.x1},${s.y1})  (${s.x2},${s.y2})  (${s.x3},${s.y3})`;
+  ctx.font = `600 ${Math.round(11.5 * dpr)}px system-ui, "Segoe UI", sans-serif`;
+  const tw = ctx.measureText(text).width, bw = tw + 16 * dpr, bh = 22 * dpr;
+  let x = (hover ? hover.dx : M.gx) + 14 * dpr, y = (hover ? hover.dy : M.gy) + 16 * dpr;
+  x = clamp(x, 2, cv.width - bw - 2); y = clamp(y, 2, cv.height - bh - 2);
+  ctx.fillStyle = 'rgba(17,20,26,.9)';
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(x, y, bw, bh, 6 * dpr); else ctx.rect(x, y, bw, bh);
+  ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, x + 8 * dpr, y + bh / 2 + .5);
+}
+
+function ptrAt(dx, dy, shift) {
+  const fx = (dx - M.gx) / M.cell, fy = (dy - M.gy) / M.cell;
+  return { dx, dy, fx, fy, shift, x: Math.floor(fx), y: Math.floor(fy),
+           inGrid: fx >= 0 && fy >= 0 && fx < W && fy < H && dx >= M.ruler && dy >= M.ruler };
+}
+function ptr(e) {
+  const r = cv.getBoundingClientRect();
+  return ptrAt((e.clientX - r.left) * (cv.width / r.width), (e.clientY - r.top) * (cv.height / r.height), e.shiftKey);
+}
+// radius from the centre pixel to the pixel under the pointer
+const radiusTo = (cx, cy, p) => clamp(Math.round(Math.hypot(p.fx - .5 - cx, p.fy - .5 - cy)), 0, MAX_R);
+
+cv.addEventListener('mousedown', (e) => { if (e.button === 1) e.preventDefault(); });   // no autoscroll
+cv.addEventListener('pointerdown', (e) => {
+  const p = ptr(e);
+  hover = p;
+  if (!gesture && (e.button === 1 || (e.button === 0 && spaceDown))) {       // pan
+    e.preventDefault();
+    gesture = { kind: 'pan', pid: e.pointerId, p0: p, cx0: view.cx, cy0: view.cy };
+    cv.setPointerCapture(e.pointerId);
+    updateCursor(p);
+    return;
+  }
+  if (e.button !== 0) return;
+  if (gesture && gesture.kind === 'tri') { triClick(p, e); return; }
+  if (gesture) return;
+  if (e.altKey) { if (p.inGrid) pickColourAt(p.x, p.y); return; }
+  if (tool === 'select') {
+    const s = selected(), h = s && hitHandle(s, p);
+    if (h) gesture = { kind: 'resize', id: s.id, h, p0: p, orig: { ...s } };
+    else {
+      const t = p.inGrid ? pickShapeAt(p.x, p.y) : null;
+      selectShape(t ? t.id : null);
+      if (t) gesture = { kind: 'move', id: t.id, p0: p, orig: { ...t } };
+    }
+  } else {
+    if (!p.inGrid) return;
+    const base = { id: nextId++, rgb: drawRgb.slice(), note: '' };
+    const s = tool === 'rectangle' ? { ...base, type: 'rectangle', leftx: p.x, rightx: p.x, upy: p.y, downy: p.y }
+      : tool === 'circle' ? { ...base, type: 'circle', centrex: p.x, centrey: p.y, radius: 0 }
+      : tool === 'triangle' ? { ...base, type: 'triangle', x1: p.x, y1: p.y, x2: p.x, y2: p.y, x3: p.x, y3: p.y }
+      : { ...base, type: 'text', leftx: p.x, upy: p.y, scale: textScale, text: 'Text' };
+    doc.shapes.push(s);
+    gesture = tool === 'triangle'
+      ? { kind: 'tri', id: s.id, phase: 1, pressed: true, p0: p }
+      : { kind: 'draw', id: s.id, p0: p, x0: p.x, y0: p.y };
+    selectShape(s.id);
+  }
+  if (gesture) { gesture.pid = e.pointerId; cv.setPointerCapture(e.pointerId); }
+  updateCursor(p);
+  syncAll();
+});
+
+cv.addEventListener('pointermove', (e) => {
+  const p = ptr(e);
+  hover = p;
+  if (gesture && e.pointerId === gesture.pid) {
+    if (gesture.kind === 'pan') {
+      view.cx = gesture.cx0 - (p.dx - gesture.p0.dx) / M.cell;
+      view.cy = gesture.cy0 - (p.dy - gesture.p0.dy) / M.cell;
+      applyView();
+      hover = ptr(e);
+    } else { applyGesture(p); syncLive(); }
+  }
+  updateCursor(hover);
+  updateStatus();
+  requestDraw();
+});
+
+cv.addEventListener('wheel', (e) => {
+  const p = ptr(e);
+  if (e.ctrlKey || e.metaKey) {                          // zoom at the pointer (also trackpad pinch)
+    e.preventDefault();
+    const k = e.deltaMode === 1 ? 0.05 : e.deltaMode === 2 ? 1 : 0.002;
+    zoomTo(M.cell * Math.exp(-e.deltaY * k), p.dx, p.dy);
+    return;
+  }
+  if (W * M.cell + 2 * M.pad <= areaW() && H * M.cell + 2 * M.pad <= areaH()) return;   // nothing to pan: scroll the page
+  e.preventDefault();
+  const k = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1;
+  let dx = e.deltaX * k, dy = e.deltaY * k;
+  if (e.shiftKey && !dx) { dx = dy; dy = 0; }
+  view.cx += dx * M.dpr / M.cell; view.cy += dy * M.dpr / M.cell;
+  applyView();
+  hover = ptr(e);
+  updateStatus();
+  requestDraw();
+}, { passive: false });
+
+function endGesture(e, cancel) {
+  if (!gesture || (e && e.pointerId !== gesture.pid)) return;
+  try { cv.releasePointerCapture(gesture.pid); } catch (err) { /* already released */ }
+  if (gesture.kind === 'pan') { gesture = null; if (hover) updateCursor(hover); requestDraw(); return; }
+  if (cancel) { cancelGesture(); syncAll(); return; }
+  const g = gesture, s = getShape(g.id);
+  if (g.kind === 'tri') {                         // a triangle stays open until its third corner
+    if (g.pressed) {
+      g.pressed = false;
+      if (s && (s.x2 !== s.x1 || s.y2 !== s.y1)) g.phase = 2;   // the first edge was dragged out
+    }
+    requestDraw();
+    return;
+  }
+  gesture = null;
+  commit();
+  syncAll();
+  if (g.kind === 'draw' && s && s.type === 'text') {             // type straight into the new text
+    const el = $('p_text');
+    if (el) { el.focus(); el.select(); }
+  }
+}
+// Second and third clicks of the triangle tool
+function triClick(p, e) {
+  const g = gesture, s = getShape(g.id);
+  if (!s) { gesture = null; return; }
+  const x = clamp(p.x, 0, MAX_X), y = clamp(p.y, 0, MAX_Y);
+  g.pid = e.pointerId;
+  if (g.phase === 1) { s.x2 = s.x3 = x; s.y2 = s.y3 = y; g.phase = 2; }
+  else { s.x3 = x; s.y3 = y; gesture = null; commit(); }
+  syncAll();
+}
+cv.addEventListener('pointerup', (e) => endGesture(e, false));
+cv.addEventListener('pointercancel', (e) => endGesture(e, true));
+cv.addEventListener('pointerleave', () => { if (!gesture) { hover = null; updateStatus(); requestDraw(); } });
+
+function cancelGesture() {
+  if (!gesture) return;
+  if (gesture.kind === 'pan') { gesture = null; return; }
+  const s = getShape(gesture.id);
+  if (s && (gesture.kind === 'draw' || gesture.kind === 'tri')) { doc.shapes = doc.shapes.filter((x) => x !== s); selectedId = null; }
+  else if (s) Object.assign(s, gesture.orig);
+  gesture = null;
+}
+
+// Shift a shape by (dx, dy) from position o, keeping it on the screen
+function translate(s, o, dx, dy) {
+  if (s.type === 'rectangle') {
+    dx = clamp(dx, -o.leftx, MAX_X - o.rightx); dy = clamp(dy, -o.upy, MAX_Y - o.downy);
+    s.leftx = o.leftx + dx; s.rightx = o.rightx + dx; s.upy = o.upy + dy; s.downy = o.downy + dy;
+  } else if (s.type === 'triangle') {
+    dx = clamp(dx, -Math.min(o.x1, o.x2, o.x3), MAX_X - Math.max(o.x1, o.x2, o.x3));
+    dy = clamp(dy, -Math.min(o.y1, o.y2, o.y3), MAX_Y - Math.max(o.y1, o.y2, o.y3));
+    for (const k of [1, 2, 3]) { s['x' + k] = o['x' + k] + dx; s['y' + k] = o['y' + k] + dy; }
+  } else {
+    const kx = s.type === 'circle' ? 'centrex' : 'leftx', ky = s.type === 'circle' ? 'centrey' : 'upy';
+    s[kx] = clamp(o[kx] + dx, 0, MAX_X); s[ky] = clamp(o[ky] + dy, 0, MAX_Y);
+  }
+}
+
+function applyGesture(p) {
+  const s = getShape(gesture.id);
+  if (!s) return;
+  const g = gesture, o = g.orig, px = clamp(p.x, 0, MAX_X), py = clamp(p.y, 0, MAX_Y);
+  if (g.kind === 'tri') {
+    if (g.phase === 1) { s.x2 = s.x3 = px; s.y2 = s.y3 = py; } else { s.x3 = px; s.y3 = py; }
+    return;
+  }
+  if (g.kind === 'draw') {
+    if (s.type === 'rectangle') {
+      let ex = px, ey = py;
+      if (p.shift) {                              // Shift: square, as big as the pointer and the screen allow
+        const sx = px < g.x0 ? -1 : 1, sy = py < g.y0 ? -1 : 1;
+        const side = Math.min(Math.max(Math.abs(px - g.x0), Math.abs(py - g.y0)),
+                              sx > 0 ? MAX_X - g.x0 : g.x0, sy > 0 ? MAX_Y - g.y0 : g.y0);
+        ex = g.x0 + sx * side; ey = g.y0 + sy * side;
+      }
+      s.leftx = Math.min(g.x0, ex); s.rightx = Math.max(g.x0, ex);
+      s.upy = Math.min(g.y0, ey); s.downy = Math.max(g.y0, ey);
+    } else if (s.type === 'circle') s.radius = radiusTo(s.centrex, s.centrey, p);
+    else if (s.type === 'text') { s.leftx = px; s.upy = py; }
+    return;
+  }
+  const dx = Math.round(p.fx - g.p0.fx), dy = Math.round(p.fy - g.p0.fy);
+  if (g.kind === 'move') { translate(s, o, dx, dy); return; }
+  if (s.type === 'circle') { s.radius = radiusTo(o.centrex, o.centrey, p); return; }
+  if (s.type === 'triangle') {
+    const k = g.h.vi;
+    s['x' + k] = clamp(o['x' + k] + dx, 0, MAX_X); s['y' + k] = clamp(o['y' + k] + dy, 0, MAX_Y);
+    return;
+  }
+  if (s.type === 'text') { s.scale = textScale = clamp(Math.round((p.fy - o.upy) / 7), 1, MAX_SCALE); return; }
+  // rectangle: the opposite edge stays put, so dragging past it just flips the rectangle
+  const { hx, hy } = g.h;
+  if (hx) {
+    const m = clamp((hx < 0 ? o.leftx : o.rightx) + dx, 0, MAX_X), a = hx < 0 ? o.rightx : o.leftx;
+    s.leftx = Math.min(m, a); s.rightx = Math.max(m, a);
+  }
+  if (hy) {
+    const m = clamp((hy < 0 ? o.upy : o.downy) + dy, 0, MAX_Y), a = hy < 0 ? o.downy : o.upy;
+    s.upy = Math.min(m, a); s.downy = Math.max(m, a);
+  }
+}
+
+function updateCursor(p) {
+  let c = 'crosshair';
+  if (gesture && gesture.kind === 'pan') c = 'grabbing';
+  else if (spaceDown && !gesture) c = 'grab';
+  else if (tool === 'select') {
+    c = 'default';
+    if (gesture) c = gesture.kind === 'move' ? 'move' : gesture.h.cur;
+    else if (p) {
+      const s = selected(), h = s && hitHandle(s, p);
+      if (h) c = h.cur; else if (p.inGrid && pickShapeAt(p.x, p.y)) c = 'move';
+    }
+  }
+  cv.style.cursor = c;
+}
+
+function updateStatus() {
+  const pos = $('statusPos');
+  if (!hover || !hover.inGrid) { pos.textContent = 'Move over the screen to see coordinates.'; return; }
+  rasterize();
+  const { x, y } = hover, c = fb[y * W + x], top = topShapeAt(x, y);
+  const nm = top ? nameMap().get(top.id) : 'background_colour';
+  pos.innerHTML = `x <b class="mono">${x}</b> &nbsp;y <b class="mono">${y}</b>` +
+    ` &nbsp;·&nbsp; <span class="sw-inline" style="background:${css444(c)}"></span><span class="mono">12'h${hex3(c)}</span> from ${esc(nm)}`;
+}
+
+/* =====================================================================
+   Colour picker. It edits either the shape colour (selected shape, and
+   the colour used for new shapes) or background_colour.
+   ===================================================================== */
+const wheel = $('wheel'), wctx = wheel.getContext('2d');
+let wheelBase = null, wheelR = 0;
+const pk = { h: 240, s: 1, v: 1 };                   // picker HSV, kept so hue survives greys/black
+
+const PRESETS = [
+  ['Black', [0, 0, 0]], ['White', [255, 255, 255]], ['Red', [255, 0, 0]], ['Green', [0, 255, 0]],
+  ['Blue', [0, 0, 255]], ['Yellow', [255, 255, 0]], ['Cyan', [0, 255, 255]], ['Magenta', [255, 0, 255]],
+  ['Orange', [255, 165, 0]], ['Pink', [255, 192, 203]], ['Purple', [128, 0, 128]], ['Brown', [139, 69, 19]],
+  ['Grey', [128, 128, 128]], ['Navy', [0, 0, 128]], ['Dark green', [0, 100, 0]], ['Sky blue', [135, 206, 235]],
+];
+
+const targetRgb = () => colourTarget === 'bg' ? doc.bg : (selected() ? selected().rgb : drawRgb);
+
+function pkFromRgb(rgb) {
+  const t = rgbToHsv(rgb);
+  if (t.v > 0) { if (t.s > 0) pk.h = t.h; pk.s = t.s; }
+  pk.v = t.v;
+}
+
+function setColour(rgb, fromPicker) {
+  rgb = rgb.map((v) => toInt(v, 0, 255));
+  if (colourTarget === 'bg') doc.bg = rgb;
+  else { drawRgb = rgb.slice(); const s = selected(); if (s) s.rgb = rgb.slice(); }
+  if (!fromPicker) pkFromRgb(rgb);
+  syncLive();
+}
+function colourDone() { commit(); save(); syncAll(); }
+
+function buildWheel() {
+  const dpr = window.devicePixelRatio || 1, size = Math.round(164 * dpr);
+  wheel.width = wheel.height = size;
+  wheelR = size / 2 - 2 * dpr;
+  wheelBase = document.createElement('canvas');
+  wheelBase.width = wheelBase.height = size;
+  const c = wheelBase.getContext('2d'), im = c.createImageData(size, size), half = size / 2;
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const dx = x + .5 - half, dy = y + .5 - half, d = Math.hypot(dx, dy);
+      if (d > wheelR + 1) continue;
+      const h = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
+      const [r, g, b] = hsvToRgb(h, Math.min(1, d / wheelR), 1), i = (y * size + x) * 4;
+      im.data[i] = r; im.data[i + 1] = g; im.data[i + 2] = b;
+      im.data[i + 3] = Math.round(clamp(wheelR + .5 - d, 0, 1) * 255);
+    }
+  }
+  c.putImageData(im, 0, 0);
+  drawWheel();
+}
+function drawWheel() {
+  const size = wheel.width, half = size / 2, dpr = window.devicePixelRatio || 1;
+  wctx.clearRect(0, 0, size, size);
+  wctx.drawImage(wheelBase, 0, 0);
+  if (pk.v < 1) {                                    // darken to match the brightness slider (kept visible)
+    wctx.fillStyle = `rgba(0,0,0,${((1 - pk.v) * .8).toFixed(3)})`;
+    wctx.beginPath(); wctx.arc(half, half, wheelR + .6, 0, Math.PI * 2); wctx.fill();
+  }
+  const a = pk.h * Math.PI / 180, mx = half + Math.cos(a) * pk.s * wheelR, my = half + Math.sin(a) * pk.s * wheelR;
+  wctx.lineWidth = 2.5 * dpr; wctx.strokeStyle = '#fff';
+  wctx.beginPath(); wctx.arc(mx, my, 6 * dpr, 0, Math.PI * 2); wctx.stroke();
+  wctx.lineWidth = 1 * dpr; wctx.strokeStyle = 'rgba(0,0,0,.7)';
+  wctx.beginPath(); wctx.arc(mx, my, 7.6 * dpr, 0, Math.PI * 2); wctx.stroke();
+}
+function wheelAt(e) {
+  const r = wheel.getBoundingClientRect();
+  const x = (e.clientX - r.left) * (wheel.width / r.width) - wheel.width / 2;
+  const y = (e.clientY - r.top) * (wheel.height / r.height) - wheel.height / 2;
+  pk.h = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+  pk.s = Math.min(1, Math.hypot(x, y) / wheelR);
+  if (pk.v < .02) pk.v = 1;                          // picking a hue on black would otherwise do nothing
+  setColour(hsvToRgb(pk.h, pk.s, pk.v), true);
+}
+let wheelPid = null;
+wheel.addEventListener('pointerdown', (e) => { wheelPid = e.pointerId; wheel.setPointerCapture(e.pointerId); wheelAt(e); });
+wheel.addEventListener('pointermove', (e) => { if (e.pointerId === wheelPid) wheelAt(e); });
+const wheelUp = (e) => { if (e.pointerId !== wheelPid) return; wheelPid = null; colourDone(); };
+wheel.addEventListener('pointerup', wheelUp);
+wheel.addEventListener('pointercancel', wheelUp);
+
+$('valSlider').addEventListener('input', (e) => { pk.v = e.target.value / 100; setColour(hsvToRgb(pk.h, pk.s, pk.v), true); });
+$('valSlider').addEventListener('change', colourDone);
+
+for (const ch of ['r', 'g', 'b']) {
+  const slider = $(ch + 'Slider'), num = $(ch + 'Num'), idx = +slider.dataset.ch;
+  slider.addEventListener('input', () => { const c = targetRgb().slice(); c[idx] = +slider.value; setColour(c); });
+  slider.addEventListener('change', colourDone);
+  num.addEventListener('input', () => {
+    const ok = /^\d{1,3}$/.test(num.value) && +num.value <= 255;
+    num.classList.toggle('bad', !ok);
+    if (ok) { const c = targetRgb().slice(); c[idx] = +num.value; setColour(c); }
+  });
+  num.addEventListener('change', () => {
+    num.classList.remove('bad');
+    const c = targetRgb().slice(); c[idx] = toInt(num.value, 0, 255); setColour(c);
+    colourDone();
+  });
+}
+
+const cleanHex = (v) => v.trim().replace(/^(#|0x|12'h|'h)/i, '').replace(/_/g, '');
+$('hex24').addEventListener('input', (e) => {
+  let v = cleanHex(e.target.value);
+  if (/^[0-9a-f]{3}$/i.test(v)) v = v.replace(/./g, '$&$&');
+  const ok = /^[0-9a-f]{6}$/i.test(v);
+  e.target.classList.toggle('bad', !ok);
+  if (ok) setColour([0, 2, 4].map((i) => parseInt(v.slice(i, i + 2), 16)));
+});
+$('hex12').addEventListener('input', (e) => {
+  const v = cleanHex(e.target.value), ok = /^[0-9a-f]{1,3}$/i.test(v);
+  e.target.classList.toggle('bad', !ok);
+  if (ok) setColour(from444(parseInt(v, 16)));
+});
+for (const id of ['hex24', 'hex12']) {
+  $(id).addEventListener('change', (e) => { e.target.classList.remove('bad'); colourDone(); });
+  $(id).addEventListener('blur', (e) => { e.target.classList.remove('bad'); syncColour(); });
+  $(id).addEventListener('keydown', (e) => { if (e.key === 'Enter') e.target.blur(); });
+}
+
+// 12 clickable bits, MSB first
+(function buildBits() {
+  const box = $('bits');
+  for (let bit = 11; bit >= 0; bit--) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'bit ' + (bit >= 8 ? 'r' : bit >= 4 ? 'g' : 'b') + (bit === 7 || bit === 3 ? ' gap' : '');
+    b.dataset.bit = bit;
+    b.title = `bit ${bit}`;
+    b.addEventListener('click', () => { setColour(from444(to444(targetRgb()) ^ (1 << bit))); colourDone(); });
+    box.appendChild(b);
+  }
+})();
+
+(function buildPresets() {
+  const box = $('presets');
+  for (const [name, rgb] of PRESETS) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'preset';
+    b.style.background = cssOf(rgb);
+    b.title = `${name} · ${v444(rgb)}`;
+    b.setAttribute('aria-label', b.title);
+    b.addEventListener('click', () => { setColour(rgb); colourDone(); });
+    box.appendChild(b);
+  }
+})();
+
+document.querySelectorAll('.target').forEach((b) => b.addEventListener('click', () => {
+  colourTarget = b.dataset.target;
+  pkFromRgb(targetRgb());
+  syncColour();
+}));
+
+function pickColourAt(x, y) {
+  rasterize();
+  const c = fb[y * W + x];
+  setColour(from444(c));
+  colourDone();
+  toast(`Picked 12'h${hex3(c)} for the ${colourTarget === 'bg' ? 'background' : 'shape colour'}`);
+}
+
+function setVal(el, v) { if (document.activeElement !== el) el.value = v; }
+function syncColour() {
+  const rgb = targetRgb(), c = to444(rgb), s = selected(), shapeRgb = s ? s.rgb : drawRgb;
+  $('swShape').style.background = cssOf(shapeRgb);
+  $('lblShape').textContent = (s ? nameMap().get(s.id) : 'new shapes') + ' · ' + v444(shapeRgb);
+  $('swBg').style.background = cssOf(doc.bg);
+  $('lblBg').textContent = v444(doc.bg);
+  document.querySelectorAll('.target').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.target === colourTarget)));
+  $('bigSw').style.background = css444(c);
+  $('bigSw').title = `Shown on the monitor as ${css444(c)} (from #${hex6(rgb)})`;
+  setVal($('hex24'), hex6(rgb));
+  setVal($('hex12'), hex3(c));
+  setVal($('valSlider'), Math.round(pk.v * 100));
+  $('valOut').textContent = Math.round(pk.v * 100) + '%';
+  const full = hsvToRgb(pk.h, pk.s, 1);
+  $('valSlider').style.background = `linear-gradient(to right, #000, rgb(${full.join(',')}))`;
+  const q = split444(c), pins = ['vgaRed', 'vgaGreen', 'vgaBlue'];
+  ['r', 'g', 'b'].forEach((ch, i) => {
+    setVal($(ch + 'Slider'), rgb[i]);
+    setVal($(ch + 'Num'), rgb[i]);
+    const lo = rgb.slice(), hi = rgb.slice(); lo[i] = 0; hi[i] = 255;
+    $(ch + 'Slider').style.background = `linear-gradient(to right, rgb(${lo.join(',')}), rgb(${hi.join(',')}))`;
+    $(ch + 'Q').textContent = `→ ${q[i]}`;
+    $(ch + 'Q').title = `4-bit value on ${pins[i]}: ${q[i]} of 15`;
+  });
+  document.querySelectorAll('#bits .bit').forEach((b) => {
+    const on = (c >> +b.dataset.bit) & 1;
+    b.classList.toggle('on', !!on);
+    b.textContent = on;
+  });
+  drawWheel();
+}
+
+/* =====================================================================
+   Selection, shape operations, properties panel, draw-order list
+   ===================================================================== */
+function selectShape(id) {
+  selectedId = id;
+  const s = selected();
+  if (s) { colourTarget = 'shape'; drawRgb = s.rgb.slice(); pkFromRgb(s.rgb); }
+  else if (colourTarget === 'shape') pkFromRgb(drawRgb);
+}
+const indexOf = (id) => doc.shapes.findIndex((s) => s.id === id);
+
+function moveShape(id, to) {
+  const i = indexOf(id);
+  if (i < 0) return;
+  to = clamp(to, 0, doc.shapes.length - 1);
+  if (to === i) return;
+  const [s] = doc.shapes.splice(i, 1);
+  doc.shapes.splice(to, 0, s);
+  commit(); syncAll();
+}
+function deleteShape(id) {
+  const i = indexOf(id);
+  if (i < 0) return;
+  doc.shapes.splice(i, 1);
+  if (selectedId === id) selectShape(null);
+  commit(); syncAll();
+}
+function duplicateShape(id) {
+  const i = indexOf(id);
+  if (i < 0) return;
+  const s = doc.shapes[i], c = { ...s, id: nextId++, rgb: s.rgb.slice() }, step = 8;
+  if (c.type === 'text') {                         // a copy of text goes on the next line
+    const down = 8 * c.scale;
+    c.upy = c.upy + down <= MAX_Y ? c.upy + down : Math.max(0, c.upy - down);
+  } else {                                         // others shift 8 px, back the other way at an edge
+    translate(c, s, step, step);
+    const [a, b] = bounds(c), [a0, b0] = bounds(s);
+    if (a === a0 || b === b0) translate(c, s, a === a0 ? -step : step, b === b0 ? -step : step);
+  }
+  doc.shapes.splice(i + 1, 0, c);
+  selectShape(c.id);
+  commit(); syncAll();
+}
+function nudge(dx, dy) {
+  const s = selected();
+  if (!s) return;
+  translate(s, { ...s }, dx, dy);
+  commit(); syncAll();
+}
+
+const FIELDS = {
+  rectangle: [['leftx', XB, MAX_X, 'leftmost column'], ['rightx', XB, MAX_X, 'rightmost column'],
+              ['upy', YB, MAX_Y, 'top row'], ['downy', YB, MAX_Y, 'bottom row']],
+  circle: [['centrex', XB, MAX_X, 'centre column'], ['centrey', YB, MAX_Y, 'centre row'], ['radius', 10, MAX_R, 'pixels']],
+  triangle: [['x1', XB, MAX_X, 'corner 1 column'], ['y1', YB, MAX_Y, 'corner 1 row'],
+             ['x2', XB, MAX_X, 'corner 2 column'], ['y2', YB, MAX_Y, 'corner 2 row'],
+             ['x3', XB, MAX_X, 'corner 3 column'], ['y3', YB, MAX_Y, 'corner 3 row']],
+  text: [['leftx', XB, MAX_X, 'left column of the first letter'], ['upy', YB, MAX_Y, 'top row'],
+         ['scale', 7, MAX_SCALE, '1 = 5x7, 2 = 10x14, 4 = 20x28 ...', 1]],
+};
+// Rectangles keep leftx <= rightx and upy <= downy: [partner, +1 means this must be <= partner]
+const PAIR = { leftx: ['rightx', 1], rightx: ['leftx', -1], upy: ['downy', 1], downy: ['upy', -1] };
+
+const ICON = {
+  up: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V3M4 7l4-4 4 4"/></svg>',
+  down: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v10M4 9l4 4 4-4"/></svg>',
+  del: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>',
+};
+
+let propsBuiltFor = null;
+function buildProps() {
+  const box = $('props'), s = selected();
+  propsBuiltFor = s ? s.id + s.type : null;
+  if (!s) {
+    box.innerHTML = `<div class="empty">No shape selected.
+      <ul>
+        <li><b>Rectangle</b> (R): drag from one corner to the opposite corner. Hold Shift for a square.</li>
+        <li><b>Circle</b> (C): press at the centre, drag out the radius.</li>
+        <li><b>Triangle</b> (T): click the three corners, or drag the first edge and click the third corner.</li>
+        <li><b>Text</b> (A): click where the top-left of the text goes, then type in the Text box.</li>
+        <li><b>Select</b> (V): click a shape, drag to move it, drag the handles to resize.</li>
+        <li>Zoom with Ctrl+wheel or + and −, 0 fits the screen. Hold Space (or the middle button) and drag to pan.</li>
+        <li>Arrow keys nudge by 1 px (Shift: ${NUDGE_BIG}). Delete removes, Ctrl+D duplicates, [ and ] change the draw order.</li>
+      </ul></div>`;
+    return;
+  }
+  const f = FIELDS[s.type];
+  box.innerHTML = `
+    <div class="prop-title"><span class="sw" id="propSw"></span><b class="mono" id="propName"></b><small id="propPos"></small></div>
+    ${s.type === 'text' ? `
+    <div class="prop-text">
+      <label for="p_text">Text <span class="w">a–z A–Z 0–9 , . and space</span></label>
+      <input id="p_text" class="mono" maxlength="${MAX_TEXT}" autocomplete="off" spellcheck="false">
+    </div>` : ''}
+    <div class="prop-grid${f.length === 3 ? ' three' : ''}">
+      ${f.map(([k, bits, max, hint, min = 0]) => `
+        <div class="prop">
+          <label for="p_${k}" title="${hint}">.${k} <span class="w">${bits}'d · ${min}–${max}</span></label>
+          <input type="number" class="num" id="p_${k}" data-k="${k}" min="${min}" max="${max}" step="1">
+        </div>`).join('')}
+    </div>
+    <div class="prop-info" id="propInfo"></div>
+    <div class="prop-note"><input id="p_note" maxlength="80" placeholder="Note (added as a comment in the code)" autocomplete="off"></div>
+    <div class="prop-actions">
+      <button class="btn sm" data-op="back" title="Draw first (furthest back)">To back</button>
+      <button class="btn sm" data-op="backward" title="Draw one step earlier ( [ )">Backward</button>
+      <button class="btn sm" data-op="forward" title="Draw one step later ( ] )">Forward</button>
+      <button class="btn sm" data-op="front" title="Draw last (in front of everything)">To front</button>
+      <button class="btn sm" data-op="dup" title="Duplicate (Ctrl+D)">Duplicate</button>
+      <button class="btn sm danger" data-op="del" title="Delete (Del)">Delete</button>
+    </div>`;
+
+  // Handlers look the shape up by id: undo/redo replaces the shape objects.
+  const id = s.id;
+  for (const [k, , max, , min = 0] of f) {
+    const el = $('p_' + k);
+    const valid = (sh, v) => {
+      if (!/^\d{1,4}$/.test(String(v)) || +v > max || +v < min) return false;
+      const pr = sh.type === 'rectangle' && PAIR[k];
+      return !pr || (pr[1] > 0 ? +v <= sh[pr[0]] : +v >= sh[pr[0]]);
+    };
+    el.addEventListener('input', () => {
+      const sh = getShape(id);
+      if (!sh) return;
+      const ok = valid(sh, el.value);
+      el.classList.toggle('bad', !ok);
+      if (ok) { sh[k] = +el.value; syncLive(); }
+    });
+    el.addEventListener('change', () => {
+      const sh = getShape(id);
+      if (!sh) return;
+      el.classList.remove('bad');
+      const v = toInt(el.value, min, max), pr = sh.type === 'rectangle' && PAIR[k];
+      sh[k] = v;
+      if (k === 'scale') textScale = v;
+      if (pr && (pr[1] > 0 ? v > sh[pr[0]] : v < sh[pr[0]])) sh[pr[0]] = v;   // a committed value pushes its partner edge
+      el.value = v;
+      commit(); syncAll();
+    });
+  }
+  const tx = $('p_text');
+  if (tx) {
+    tx.value = s.text;
+    tx.addEventListener('input', () => {
+      const sh = getShape(id);
+      if (!sh) return;
+      const clean = cleanText(tx.value);
+      if (clean !== tx.value) {                        // drop characters the font cannot draw
+        const caret = Math.max(0, (tx.selectionStart || 0) - (tx.value.length - clean.length));
+        tx.value = clean;
+        tx.setSelectionRange(caret, caret);
+      }
+      sh.text = clean;
+      syncLive();
+    });
+    tx.addEventListener('change', () => { commit(); syncAll(); });
+    tx.addEventListener('keydown', (e) => { if (e.key === 'Enter') tx.blur(); });
+  }
+  const note = $('p_note');
+  note.value = s.note || '';
+  note.addEventListener('input', () => {
+    const sh = getShape(id);
+    if (sh) { sh.note = note.value.replace(/[\r\n]+/g, ' '); syncLive(); }
+  });
+  note.addEventListener('change', () => { commit(); syncAll(); });
+  box.querySelector('.prop-actions').addEventListener('click', (e) => {
+    const op = e.target.closest('[data-op]');
+    if (!op || op.disabled) return;
+    const i = indexOf(id);
+    ({
+      back: () => moveShape(id, 0), backward: () => moveShape(id, i - 1),
+      forward: () => moveShape(id, i + 1), front: () => moveShape(id, doc.shapes.length - 1),
+      dup: () => duplicateShape(id), del: () => deleteShape(id),
+    })[op.dataset.op]();
+  });
+}
+
+function syncProps() {
+  const s = selected();
+  if ((s ? s.id + s.type : null) !== propsBuiltFor || (s && !$('propName'))) buildProps();
+  if (!s) return;
+  const i = indexOf(s.id), n = doc.shapes.length;
+  $('propSw').style.background = cssOf(s.rgb);
+  $('propName').textContent = nameMap().get(s.id);
+  $('propPos').textContent = `layer ${i + 1} of ${n}`;
+  for (const [k] of FIELDS[s.type]) {
+    const el = $('p_' + k);
+    if (document.activeElement !== el) { el.value = s[k]; el.classList.remove('bad'); }
+  }
+  setVal($('p_note'), s.note || '');
+  if ($('p_text')) setVal($('p_text'), s.text);
+  let info;
+  const [a, b, c, e] = bounds(s), off = a < 0 || b < 0 || c > MAX_X || e > MAX_Y ? ' · partly off-screen (clipped)' : '';
+  if (s.type === 'rectangle') {
+    const w = s.rightx - s.leftx + 1, h = s.downy - s.upy + 1;
+    info = `${w} × ${h} px${w === h ? ' (square)' : ''} · ${w * h} pixels`;
+  } else if (s.type === 'circle') {
+    info = `diameter ${2 * s.radius + 1} px` + off;
+  } else if (s.type === 'triangle') {
+    let n = 0;
+    for (let y = b; y <= e; y++) for (let x = a; x <= c; x++) if (triInside(s, x, y)) n++;
+    info = `${n} pixels`;
+  } else {
+    const n = layoutText(s).length;
+    info = `${n} character instance${n === 1 ? '' : 's'} · ${c - a + 1} × ${e - b + 1} px` + off;
+  }
+  $('propInfo').textContent = info;
+  const ops = $('props').querySelectorAll('[data-op]');
+  ops.forEach((b) => {
+    const o = b.dataset.op;
+    if (o === 'back' || o === 'backward') b.disabled = i === 0;
+    if (o === 'front' || o === 'forward') b.disabled = i === n - 1;
+  });
+}
+
+function summary(s) {
+  if (s.type === 'rectangle') return `x ${s.leftx}–${s.rightx} · y ${s.upy}–${s.downy}`;
+  if (s.type === 'circle') return `centre (${s.centrex}, ${s.centrey}) · r ${s.radius}`;
+  if (s.type === 'triangle') return `(${s.x1},${s.y1}) (${s.x2},${s.y2}) (${s.x3},${s.y3})`;
+  return `"${s.text}" · scale ${s.scale} · at (${s.leftx}, ${s.upy})`;
+}
+
+// Every Verilog instance in draw order. A text shape becomes one `character`
+// per visible letter: text1_1, text1_2 ...
+function instances() {
+  const names = nameMap(), list = [];
+  for (const s of doc.shapes) {
+    const nm = names.get(s.id);
+    if (s.type !== 'text') list.push({ s, module: s.type, name: nm, first: true });
+    else layoutText(s).forEach((g, i) => list.push({ s, module: 'character', name: `${nm}_${i + 1}`, ch: g.c, x: g.x, first: i === 0 }));
+  }
+  return list;
+}
+function lastOutput() {
+  const L = instances();
+  return L.length ? 'after_' + L[L.length - 1].name : 'background_colour';
+}
+
+function syncLayers() {
+  const names = nameMap(), n = doc.shapes.length;
+  let html = `<li class="layer base" data-act="bg" title="Edit background_colour">
+      <span class="idx">bg</span><span class="sw" style="background:${cssOf(doc.bg)}"></span>
+      <span class="nm"><b class="mono">background_colour</b><small class="mono">${v444(doc.bg)}</small></span><span></span></li>`;
+  doc.shapes.forEach((s, i) => {
+    const note = s.note ? ` <span style="font-weight:400;color:var(--muted)">· ${esc(s.note)}</span>` : '';
+    html += `<li class="layer${s.id === selectedId ? ' sel' : ''}" draggable="true" data-id="${s.id}">
+      <span class="idx">${i + 1}</span><span class="sw" style="background:${cssOf(s.rgb)}"></span>
+      <span class="nm"><b><span class="mono">${names.get(s.id)}</span> <span class="hex mono">${v444(s.rgb)}</span>${note}</b><small class="mono">${esc(summary(s))}</small></span>
+      <span class="ops">
+        <button data-act="up" title="Move up: drawn earlier, further back" aria-label="Move up"${i === 0 ? ' disabled' : ''}>${ICON.up}</button>
+        <button data-act="down" title="Move down: drawn later, in front" aria-label="Move down"${i === n - 1 ? ' disabled' : ''}>${ICON.down}</button>
+        <button data-act="del" class="del" title="Delete" aria-label="Delete">${ICON.del}</button>
+      </span></li>`;
+  });
+  html += `<li class="layer out" title="The last output is what the monitor shows">
+      <span class="idx">→</span><span class="nm"><b class="mono">Vga_Display .pixel_data</b><small class="mono">${lastOutput()}</small></span></li>`;
+  $('layers').innerHTML = html;
+  $('layerCount').textContent = n === 1 ? '1 shape' : `${n} shapes`;
+
+  // Rough hardware cost: a circle squares dx, dy and radius, a triangle has 6 multiplies
+  const L = instances(), count = (m) => L.filter((k) => k.module === m).length;
+  const circles = count('circle'), tris = count('triangle'), mult = 3 * circles + 6 * tris;
+  const res = $('resInfo');
+  res.textContent = !L.length ? '' :
+    `${L.length} module instance${L.length === 1 ? '' : 's'}` +
+    (mult ? ` · up to ${mult} DSP multiplier${mult === 1 ? '' : 's'} (3 per circle, 6 per triangle) of the 90 on the Basys 3` : '') +
+    (mult > 90 ? '. Vivado builds the rest from LUTs, so watch the timing report.' : '.');
+  res.classList.toggle('warn', mult > 90);
+}
+
+$('layers').addEventListener('click', (e) => {
+  const li = e.target.closest('li');
+  if (!li) return;
+  if (li.dataset.act === 'bg') { colourTarget = 'bg'; pkFromRgb(doc.bg); syncColour(); return; }
+  if (!li.dataset.id) return;
+  const id = +li.dataset.id, btn = e.target.closest('button[data-act]');
+  if (btn) {
+    const i = indexOf(id), a = btn.dataset.act;
+    if (a === 'up') moveShape(id, i - 1);
+    else if (a === 'down') moveShape(id, i + 1);
+    else if (a === 'del') deleteShape(id);
+    return;
+  }
+  selectShape(id); syncAll();
+});
+
+// Drag rows to reorder
+let dragId = null;
+const clearDrop = () => $('layers').querySelectorAll('.drop-before, .drop-after').forEach((x) => x.classList.remove('drop-before', 'drop-after'));
+$('layers').addEventListener('dragstart', (e) => {
+  const li = e.target.closest('li[data-id]');
+  if (!li) return;
+  dragId = +li.dataset.id;
+  e.dataTransfer.effectAllowed = 'move';
+  try { e.dataTransfer.setData('text/plain', String(dragId)); } catch (err) { /* some browsers need this */ }
+});
+$('layers').addEventListener('dragover', (e) => {
+  const li = e.target.closest('li[data-id]');
+  if (dragId == null || !li) return;
+  e.preventDefault();
+  clearDrop();
+  const r = li.getBoundingClientRect();
+  li.classList.add(e.clientY < r.top + r.height / 2 ? 'drop-before' : 'drop-after');
+});
+$('layers').addEventListener('drop', (e) => {
+  const li = e.target.closest('li[data-id]');
+  if (dragId == null || !li) return;
+  e.preventDefault();
+  const r = li.getBoundingClientRect(), after = e.clientY >= r.top + r.height / 2;
+  const from = indexOf(dragId);
+  let to = indexOf(+li.dataset.id) + (after ? 1 : 0);
+  if (from < to) to--;
+  clearDrop();
+  const id = dragId;
+  dragId = null;
+  moveShape(id, to);
+});
+$('layers').addEventListener('dragend', () => { dragId = null; clearDrop(); });
+
+/* =====================================================================
+   Verilog generation
+   ===================================================================== */
+// Full-module mode wraps the generated shapes in My_Top_Module.v
+// (clk and the VGA port only; the display reset is tied to 0).
+const TOP_HEAD = [
+  '`timescale 1ns / 1ps',
+  '',
+  'module My_Top_Module (',
+  '    input clk,',
+  '    output Hsync,',
+  '    output Vsync,',
+  '    output [3:0] vgaRed,',
+  '    output [3:0] vgaGreen,',
+  '    output [3:0] vgaBlue',
+  ');',
+  '',
+  '    wire [9:0] x;',
+  '    wire [9:0] y;',
+  '    wire [11:0] background_colour;',
+  '',
+];
+const TOP_MID = [
+  '',
+  '    // Reset hardcoded to 0',
+  '    wire resetdisplay = 1\'b0;',
+  '',
+];
+const TOP_TAIL = (last) => [
+  '    // 640x480 @ 60 Hz: x and y say which pixel is being drawn,',
+  '    // pixel_data is the colour it gets.',
+  '    Vga_Display vga (',
+  '        .clk(clk),',
+  '        .reset(resetdisplay),',
+  '        .x(x),',
+  '        .y(y),',
+  `        .pixel_data(${last}),`,
+  '',
+  '        .hsync(Hsync),',
+  '        .vsync(Vsync),',
+  '        .vgaRed(vgaRed),',
+  '        .vgaGreen(vgaGreen),',
+  '        .vgaBlue(vgaBlue)',
+  '    );',
+  '',
+  'endmodule',
+];
+
+function genLines() {
+  const L = [], add = (t, id = null) => L.push({ t, id });
+  const names = nameMap(), n = doc.shapes.length, insts = instances(), full = opts.full, ind = full ? '    ' : '';
+  const last = lastOutput(), bg = to444(doc.bg), [br, bgg, bb] = split444(bg);
+  const bgAssign = `${ind}assign background_colour = 12'h${hex3(bg)};` + (opts.comments ? ` // bg colour: R=${br} G=${bgg} B=${bb}` : '');
+  const xd = (v) => `${XB}'d${v}`, yd = (v) => `${YB}'d${v}`;
+
+  if (full) { TOP_HEAD.forEach((t) => add(t)); add(bgAssign); TOP_MID.forEach((t) => add(t)); }
+  else if (opts.declareBg) { add('wire [11:0] background_colour;'); add(bgAssign); add(''); }
+
+  if (insts.length) {
+    if (opts.comments) add(`${ind}// Each shape draws over the output of the one before it.`);
+    for (const k of insts) add(`${ind}wire [11:0] after_${k.name};`, k.s.id);
+    add('');
+  }
+  let prev = 'background_colour';
+  for (const k of insts) {
+    const s = k.s, i = doc.shapes.indexOf(s), c = to444(s.rgb), [r4, g4, b4] = split444(c);
+    if (opts.comments && k.first) {
+      const where = i === 0 ? 'bottom' : i === n - 1 ? 'top' : `layer ${i + 1}`;
+      const sq = s.type === 'rectangle' && s.rightx - s.leftx === s.downy - s.upy ? ', a square' : '';
+      const what = s.type === 'text' ? `${names.get(s.id)} "${s.text}" at scale ${s.scale}` : names.get(s.id) + sq;
+      add(`${ind}// ${what} (${where})${s.note ? ': ' + s.note : ''}, drawn over ${prev}`, s.id);
+    }
+    add(`${ind}${k.module} ${k.name} (`, s.id);
+    const ports = [['x', 'x'], ['y', 'y']];
+    if (s.type === 'rectangle') {
+      ports.push(['leftx', xd(s.leftx)], ['rightx', xd(s.rightx)], ['upy', yd(s.upy)], ['downy', yd(s.downy)]);
+    } else if (s.type === 'circle') {
+      ports.push(['centrex', xd(s.centrex)], ['centrey', yd(s.centrey)], ['radius', `10'd${s.radius}`]);
+    } else if (s.type === 'triangle') {
+      ports.push(['x1', xd(s.x1)], ['y1', yd(s.y1)], ['x2', xd(s.x2)], ['y2', yd(s.y2)], ['x3', xd(s.x3)], ['y3', yd(s.y3)]);
+    } else {
+      ports.push(['ascii', `"${k.ch}"`], ['leftx', xd(k.x)], ['upy', yd(s.upy)], ['scale', `7'd${s.scale}`]);
+    }
+    ports.push(['colour', `12'h${hex3(c)}`], ['background_colour', prev], ['vga_data', `after_${k.name}`]);
+    ports.forEach(([p, v], j) => {
+      let t = `${ind}    .${p.padEnd(17)} (${v})${j < ports.length - 1 ? ',' : ''}`;
+      if (p === 'colour' && opts.comments && k.first) t += ` // R=${r4} G=${g4} B=${b4} (#${hex6(s.rgb)})`;
+      add(t, s.id);
+    });
+    add(`${ind});`, s.id);
+    add('');
+    prev = `after_${k.name}`;
+  }
+
+  if (full) TOP_TAIL(last).forEach((t) => add(t));
+  else if (opts.comments) add(`// Needs x and y from Vga_Display. Send ${last} to the screen: Vga_Display ... .pixel_data(${last})`);
+  while (L.length && L[L.length - 1].t === '') L.pop();
+  return L;
+}
+const genText = () => genLines().map((l) => l.t).join('\n') + '\n';
+
+const TOKENS = /(&quot;.*?&quot;)|(`\w+)|(\b\d+'[sS]?[dDhHbBoO][0-9a-fA-F_]+\b|\b\d+(?:ns|ps)?\b)|(\.\w+)(?=\s*\()|\b(module|endmodule|input|output|inout|wire|reg|assign|always|begin|end|if|else|parameter|localparam)\b/g;
+function highlight(t) {
+  const ci = t.indexOf('//'), code = ci >= 0 ? t.slice(0, ci) : t, com = ci >= 0 ? t.slice(ci) : '';
+  let h = esc(code).replace(TOKENS, (m, str, dir, num, port) =>
+    `<span class="${str || num ? 'tk-num' : port ? 'tk-port' : 'tk-kw'}">${m}</span>`);
+  if (com) h += `<span class="tk-com">${esc(com)}</span>`;
+  return h || ' ';
+}
+
+let lastCodeKey = '';
+function syncCode() {
+  const L = genLines(), key = JSON.stringify(L) + '|' + selectedId;
+  if (key === lastCodeKey) return;
+  lastCodeKey = key;
+  let html = '', open = null;
+  for (const l of L) {
+    if (l.id !== open) {
+      if (open !== null) html += '</span>';
+      if (l.id !== null) html += `<span class="blk${l.id === selectedId ? ' sel' : ''}" data-id="${l.id}">`;
+      open = l.id;
+    }
+    html += `<span class="ln">${highlight(l.t)}</span>`;
+  }
+  if (open !== null) html += '</span>';
+  $('code').innerHTML = html;
+  document.querySelectorAll('[data-mode]').forEach((b) => b.setAttribute('aria-pressed', String((b.dataset.mode === 'full') === opts.full)));
+  $('optBg').disabled = opts.full;
+  $('optBg').parentElement.style.opacity = opts.full ? .5 : 1;
+}
+function scrollToSelection() {
+  const pre = $('code'), b = pre.querySelector('.blk.sel');
+  if (b && (b.offsetTop < pre.scrollTop || b.offsetTop + b.offsetHeight > pre.scrollTop + pre.clientHeight)) pre.scrollTop = b.offsetTop - 12;
+  const ul = $('layers'), li = ul.querySelector('.layer.sel');
+  if (li && (li.offsetTop < ul.scrollTop || li.offsetTop + li.offsetHeight > ul.scrollTop + ul.clientHeight)) ul.scrollTop = li.offsetTop - 8;
+}
+$('code').addEventListener('click', (e) => {
+  const sel = window.getSelection();
+  if (sel && !sel.isCollapsed) return;                 // let people select text normally
+  const b = e.target.closest('.blk');
+  if (b) { selectShape(+b.dataset.id); syncAll(); }
+});
+
+async function copyCode() {
+  const text = genText();
+  let ok = false;
+  try { await navigator.clipboard.writeText(text); ok = true; } catch (e) {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = document.execCommand('copy'); } catch (err) { ok = false; }
+    ta.remove();
+  }
+  toast(ok ? `Copied ${opts.full ? 'My_Top_Module.v' : 'the Verilog'} (${text.split('\n').length - 1} lines)` : 'Copy failed: select the code and press Ctrl+C');
+}
+function saveCode() {
+  const name = opts.full ? 'My_Top_Module.v' : 'shapes_snippet.v';
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([genText()], { type: 'text/plain' }));
+  a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  toast(`Saved ${name}`);
+}
+
+/* =====================================================================
+   Import: rebuild the drawing from existing Verilog
+   ===================================================================== */
+function parseNum(v) {
+  const str = /^\s*"(.)"\s*$/.exec(String(v == null ? '' : v));    // "A" is the 8-bit code of A
+  if (str) return str[1].charCodeAt(0);
+  v = String(v == null ? '' : v).replace(/[\s_]/g, '');
+  const m = /^(\d*)'[sS]?([dDhHbBoO])([0-9a-fA-F]+)$/.exec(v);
+  if (m) return parseInt(m[3], { d: 10, h: 16, b: 2, o: 8 }[m[2].toLowerCase()]);
+  return /^\d+$/.test(v) ? parseInt(v, 10) : NaN;
+}
+// 12'hF00 is RGB444; 16'hF800 (OLED designer) is RGB565
+function parseColour(v) {
+  const n = parseNum(v);
+  if (isNaN(n)) return null;
+  const w = /^\s*(\d+)\s*'/.exec(String(v));
+  return (w ? +w[1] === 16 : n > 0xFFF) ? from565(n & 0xFFFF) : from444(n & 0xFFF);
+}
+function parseVerilog(text) {
+  const src = text.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\/\/.*$/gm, '');
+  const inst = [], re = /\b(rectangle|circle|triangle|character)\s+(\w+)\s*\(([\s\S]*?)\)\s*;/g;
+  let m;
+  while ((m = re.exec(src))) {
+    const ports = {}, pr = /\.(\w+)\s*\(\s*([^()]*?)\s*\)/g;
+    let p;
+    while ((p = pr.exec(m[3]))) ports[p[1]] = p[2];
+    ports.out = ports.vga_data || ports.oled_data;
+    inst.push({ type: m[1], name: m[2], ports });
+  }
+  if (!inst.length) throw new Error('No rectangle, circle, triangle or character instances found.');
+
+  let bg = null;
+  const bm = /\bbackground_colour\s*=\s*([^;]+);/.exec(src);
+  if (bm) bg = parseColour(bm[1]);
+
+  // Order by following the chain background_colour -> ... -> last output
+  const outs = new Set(inst.map((i) => i.ports.out)), byInput = new Map();
+  for (const i of inst) {
+    const k = i.ports.background_colour;
+    if (!byInput.has(k)) byInput.set(k, []);
+    byInput.get(k).push(i);
+  }
+  const roots = inst.filter((i) => !outs.has(i.ports.background_colour));
+  let order = [], warn = '';
+  if (roots.length === 1) {
+    const seen = new Set();
+    for (let cur = roots[0]; cur && !seen.has(cur);) {
+      seen.add(cur); order.push(cur);
+      const next = byInput.get(cur.ports.out);
+      cur = next && next.length === 1 ? next[0] : null;
+    }
+  }
+  if (order.length !== inst.length) { order = inst; warn = ' They are not one simple chain, so they were kept in the order written.'; }
+
+  const shapes = [], skipped = [];
+  for (const i of order) {
+    const P = (k) => parseNum(i.ports[k]);
+    const rgb = parseColour(i.ports.colour) || [255, 255, 255];
+    if (i.type === 'character') {
+      const code = P('ascii'), c = String.fromCharCode(code), lx = P('leftx'), uy = P('upy'), sc = P('scale');
+      if ([code, lx, uy, sc].some((v) => isNaN(v)) || !FONT[c] || sc < 1) { skipped.push(i.name); continue; }
+      // Letters join one text shape when each sits where the font spacing puts the next one
+      const t = shapes[shapes.length - 1];
+      if (t && t.type === 'text' && t.upy === uy && t.scale === sc && to444(t.rgb) === to444(rgb)) {
+        const gap = lx - t.end;
+        if (gap === 0 || (gap > 0 && gap % (5 * sc) === 0)) {
+          t.text += ' '.repeat(gap / (5 * sc)) + c;
+          t.end = lx + (GLYPH_W[c] + 2) * sc;
+          continue;
+        }
+      }
+      shapes.push({ type: 'text', leftx: lx, upy: uy, scale: sc, text: c, rgb, note: '', end: lx + (GLYPH_W[c] + 2) * sc });
+      continue;
+    }
+    const keys = { rectangle: ['leftx', 'rightx', 'upy', 'downy'], circle: ['centrex', 'centrey', 'radius'],
+                   triangle: ['x1', 'y1', 'x2', 'y2', 'x3', 'y3'] }[i.type];
+    const vals = keys.map(P);
+    if (vals.some((v) => isNaN(v))) { skipped.push(i.name); continue; }
+    const s = { type: i.type, rgb, note: '' };
+    keys.forEach((k, j) => { s[k] = vals[j]; });
+    shapes.push(s);
+  }
+  if (skipped.length) warn += ` Skipped (non-constant ports or unsupported character): ${skipped.join(', ')}.`;
+  return { bg, shapes, warn };
+}
+
+const dlg = $('importDlg');
+$('importBtn').addEventListener('click', () => {
+  $('importMsg').textContent = ''; $('importMsg').className = 'dlg-msg';
+  if (typeof dlg.showModal === 'function') dlg.showModal(); else dlg.setAttribute('open', '');
+  $('importText').focus();
+});
+$('doImportBtn').addEventListener('click', () => {
+  const msg = $('importMsg');
+  try {
+    const r = parseVerilog($('importText').value);
+    doc = makeDoc({ bg: r.bg || doc.bg, shapes: r.shapes });
+    selectShape(null);
+    commit(); syncAll();
+    dlg.close();
+    toast(`Imported ${r.shapes.length} shape${r.shapes.length === 1 ? '' : 's'}${r.bg ? ' and the background' : ''}.${r.warn}`);
+  } catch (e) {
+    msg.textContent = e.message; msg.className = 'dlg-msg err';
+  }
+});
+$('exampleBtn').addEventListener('click', () => {
+  doc = makeDoc(EXAMPLE);
+  selectShape(null);
+  commit(); syncAll();
+  dlg.close();
+  toast('Loaded the example scene');
+});
+
+/* =====================================================================
+   Toolbar, keyboard, theme, toast
+   ===================================================================== */
+const HINTS = {
+  select: 'Click a shape to select it · drag to move · drag handles to resize · arrow keys nudge',
+  rectangle: 'Drag from one corner to the opposite corner · hold Shift for a square · Alt+click picks a colour',
+  circle: 'Press at the centre, drag out the radius · Alt+click picks a colour',
+  triangle: 'Click the 3 corners (or drag the first edge, then click the 3rd) · Esc cancels',
+  text: 'Click where the top-left of the text goes, then type in the Text box',
+};
+function setTool(t) {
+  if (gesture && gesture.kind === 'tri') endGesture(null, true);    // drop a half-drawn triangle
+  tool = t;
+  document.querySelectorAll('[data-tool]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.tool === t)));
+  $('statusHint').textContent = HINTS[t];
+  if (hover) updateCursor(hover); else cv.style.cursor = t === 'select' ? 'default' : 'crosshair';
+  requestDraw();
+}
+document.querySelectorAll('[data-tool]').forEach((b) => b.addEventListener('click', () => setTool(b.dataset.tool)));
+document.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', () => {
+  opts.full = b.dataset.mode === 'full'; save(); syncCode();
+}));
+
+$('zoomIn').addEventListener('click', () => zoomStep(1));
+$('zoomOut').addEventListener('click', () => zoomStep(-1));
+$('zoomFit').addEventListener('click', setFit);
+$('gridChk').addEventListener('change', (e) => { opts.grid = e.target.checked; save(); requestDraw(); });
+$('optBg').addEventListener('change', (e) => { opts.declareBg = e.target.checked; save(); syncCode(); });
+$('optComments').addEventListener('change', (e) => { opts.comments = e.target.checked; save(); syncCode(); });
+$('undoBtn').addEventListener('click', undo);
+$('redoBtn').addEventListener('click', redo);
+$('copyBtn').addEventListener('click', copyCode);
+$('copyTopBtn').addEventListener('click', copyCode);
+$('saveBtn').addEventListener('click', saveCode);
+$('clearBtn').addEventListener('click', () => {
+  if (!doc.shapes.length) return;
+  doc.shapes = [];
+  selectShape(null);
+  commit(); syncAll();
+  toast('Cleared all shapes. Ctrl+Z brings them back.');
+});
+
+document.addEventListener('keydown', (e) => {
+  if (dlg.open) return;
+  const t = e.target, tag = (t.tagName || '').toLowerCase();
+  const typing = tag === 'textarea' || tag === 'select' || t.isContentEditable ||
+    (tag === 'input' && !['checkbox', 'button', 'radio'].includes(t.type));
+  const mod = e.ctrlKey || e.metaKey, key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+  if (mod && !typing && (key === 'z' || key === 'y')) {
+    e.preventDefault();
+    if (key === 'y' || e.shiftKey) redo(); else undo();
+    return;
+  }
+  if (typing) { if (e.key === 'Escape') t.blur(); return; }
+  if (mod && key === 'd') { e.preventDefault(); if (selectedId) duplicateShape(selectedId); return; }
+  if (mod || e.altKey) return;
+  const s = selected(), step = e.shiftKey ? NUDGE_BIG : 1;
+  switch (key) {
+    case ' ':
+      e.preventDefault();
+      if (!spaceDown) { spaceDown = true; updateCursor(hover); }
+      break;
+    case 'v': setTool('select'); break;
+    case 'r': setTool('rectangle'); break;
+    case 'c': setTool('circle'); break;
+    case 't': setTool('triangle'); break;
+    case 'a': setTool('text'); break;
+    case 'g': opts.grid = !opts.grid; $('gridChk').checked = opts.grid; save(); requestDraw(); break;
+    case '+': case '=': zoomStep(1); break;
+    case '-': case '_': zoomStep(-1); break;
+    case '0': setFit(); break;
+    case '1': zoomTo(M.dpr); break;
+    case 'Escape':
+      if (gesture) endGesture(null, true);
+      else { selectShape(null); syncAll(); }
+      break;
+    case 'Delete': case 'Backspace':
+      if (s) { e.preventDefault(); deleteShape(s.id); }
+      break;
+    case 'ArrowLeft': case 'ArrowRight': case 'ArrowUp': case 'ArrowDown':
+      if (s && !gesture) {
+        e.preventDefault();
+        nudge(key === 'ArrowLeft' ? -step : key === 'ArrowRight' ? step : 0, key === 'ArrowUp' ? -step : key === 'ArrowDown' ? step : 0);
+      }
+      break;
+    case '[': if (s) moveShape(s.id, indexOf(s.id) - 1); break;
+    case ']': if (s) moveShape(s.id, indexOf(s.id) + 1); break;
+    default: return;
+  }
+});
+document.addEventListener('keyup', (e) => {
+  if (e.key === ' ' && spaceDown) { spaceDown = false; updateCursor(hover); }
+});
+window.addEventListener('blur', () => { spaceDown = false; });
+
+const isDark = () => {
+  const forced = document.documentElement.dataset.theme;
+  return forced ? forced === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+};
+$('themeBtn').addEventListener('click', () => {
+  const next = isDark() ? 'light' : 'dark';
+  document.documentElement.dataset.theme = next;
+  try { localStorage.setItem(THEME_KEY, next); } catch (e) { /* ignore */ }
+  readTheme(); draw();
+});
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { readTheme(); draw(); });
+
+let toastTimer = 0;
+function toast(text) {
+  const el = $('toast');
+  el.textContent = text;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+}
+
+/* =====================================================================
+   Sync + start-up
+   ===================================================================== */
+let lastSel;
+function syncAll() {
+  syncProps();
+  syncLayers();
+  syncCode();
+  syncColour();
+  refreshUndo();
+  updateStatus();
+  draw();
+  if (selectedId !== lastSel) { lastSel = selectedId; scrollToSelection(); }
+}
+let liveQueued = false;
+function syncLive() {
+  if (liveQueued) return;
+  liveQueued = true;
+  requestAnimationFrame(() => { liveQueued = false; syncAll(); });
+}
+
+(function init() {
+  try {
+    const th = localStorage.getItem(THEME_KEY);
+    if (th === 'light' || th === 'dark') document.documentElement.dataset.theme = th;
+  } catch (e) { /* ignore */ }
+  if (!load()) doc = makeDoc(EXAMPLE);
+  hist.stack = [snap()]; hist.idx = 0;
+  pkFromRgb(drawRgb);
+  $('gridChk').checked = opts.grid;
+  $('optBg').checked = opts.declareBg;
+  $('optComments').checked = opts.comments;
+  readTheme();
+  buildWheel();
+  setTool('rectangle');
+  layoutCanvas();
+  syncAll();
+  let dpr = window.devicePixelRatio;
+  new ResizeObserver(() => layoutCanvas()).observe($('canvasWrap'));
+  window.addEventListener('resize', () => {
+    if (window.devicePixelRatio !== dpr) { dpr = window.devicePixelRatio; buildWheel(); }
+    layoutCanvas();
+  });
+})();
+})();
+</script>
+</body>
+</html>
